@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <title>登录 - 宿舍报修系统</title>
+    <script src="https://cdn.jsdelivr.net/npm/vue@3"></script>
+    <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+    <style>
+        *{margin:0;padding:0;box-sizing:border-box}
+        body{
+            margin:0;padding:0;
+            background:linear-gradient(135deg, #e8f4fc 0%, #f0f2f5 50%, #e8fce8 100%);
+            display:flex;justify-content:center;align-items:center;
+            height:100vh;font-family:"Microsoft YaHei","PingFang SC",sans-serif;
+        }
+        .login-box{
+            width:400px;background:white;padding:40px 36px 32px;
+            border-radius:16px;box-shadow:0 8px 32px rgba(0,0,0,0.1);
+        }
+        .title{text-align:center;font-size:22px;margin-bottom:24px;color:#333;font-weight:600}
+        /* 角色切换标签 */
+        .role-tabs{
+            display:flex;gap:0;margin-bottom:28px;
+            background:#f5f7fa;border-radius:10px;padding:4px;
+        }
+        .role-tab{
+            flex:1;text-align:center;padding:10px 0;border-radius:8px;
+            cursor:pointer;font-size:14px;color:#666;
+            transition:all 0.25s;font-weight:500;
+            user-select:none;
+        }
+        .role-tab.active.student{background:#409eff;color:#fff;box-shadow:0 2px 8px rgba(64,158,255,0.35)}
+        .role-tab.active.teacher{background:#e6a23c;color:#fff;box-shadow:0 2px 8px rgba(230,162,60,0.35)}
+        .role-tab.active.admin{background:#67c23a;color:#fff;box-shadow:0 2px 8px rgba(103,194,58,0.35)}
+        .role-tab:hover:not(.active){background:#e8eaed}
+
+        /* 角色图标 */
+        .role-icon{font-size:28px;display:block;margin-bottom:2px}
+        .role-label{font-size:13px}
+
+        /* 表单 */
+        .form-group{margin-bottom:18px}
+        .input{
+            width:100%;height:46px;padding:0 16px;
+            border:1.5px solid #e4e7ed;border-radius:8px;
+            outline:none;font-size:14px;transition:border-color 0.25s;
+            background:#fafbfc;
+        }
+        .input:focus{border-color:#409eff;background:#fff}
+        .btn{
+            width:100%;height:46px;border:none;border-radius:8px;
+            font-size:16px;cursor:pointer;color:#fff;font-weight:500;
+            transition:all 0.25s;letter-spacing:2px;
+        }
+        .btn.student{background:#409eff}
+        .btn.teacher{background:#e6a23c}
+        .btn.admin{background:#67c23a}
+        .btn:hover{opacity:0.88;transform:translateY(-1px)}
+        .btn:active{transform:translateY(0)}
+        .tip{text-align:center;margin-top:16px;color:#999;font-size:12px}
+
+        .error-msg{color:#f56c6c;font-size:13px;text-align:center;margin-top:8px;min-height:20px}
+    </style>
+</head>
+<body>
+<div id="app" class="login-box">
+    <div class="title">宿舍报修系统</div>
+
+    <!-- 角色切换 -->
+    <div class="role-tabs">
+        <div class="role-tab student" :class="{active:role==='student'}" @click="role='student'">
+            <span class="role-icon">🎓</span>
+            <span class="role-label">学生</span>
+        </div>
+        <div class="role-tab teacher" :class="{active:role==='teacher'}" @click="role='teacher'">
+            <span class="role-icon">🔧</span>
+            <span class="role-label">师傅</span>
+        </div>
+        <div class="role-tab admin" :class="{active:role==='admin'}" @click="role='admin'">
+            <span class="role-icon">🏢</span>
+            <span class="role-label">管理员</span>
+        </div>
+    </div>
+
+    <!-- 登录表单 -->
+    <div class="form-group">
+        <input v-model="username" class="input" placeholder="用户名"
+               @keyup.enter="login" />
+    </div>
+    <div class="form-group">
+        <input v-model="password" class="input" type="password" placeholder="密码"
+               @keyup.enter="login" />
+    </div>
+    <button class="btn" :class="role" @click="login">登 录</button>
+    <div class="error-msg">{{errorMsg}}</div>
+    <div class="tip">请选择您的身份后登录</div>
+</div>
+
+<script src="api.js"></script>
+<script>
+const { createApp } = Vue
+createApp({
+    data() {
+        return {
+            role: 'student',
+            username: '',
+            password: '',
+            errorMsg: ''
+        }
+    },
+    methods: {
+        async login() {
+            this.errorMsg = ''
+            if (!this.username || !this.password) {
+                this.errorMsg = '请输入用户名和密码'
+                return
+            }
+            try {
+                const res = await api.loginPost('/auth/login',
+                    `username=${encodeURIComponent(this.username)}&password=${encodeURIComponent(this.password)}`
+                )
+                localStorage.setItem('token', res.data.data)
+
+                const infoRes = await api.get('/auth/info')
+                const user = infoRes.data.data
+                if (user.role !== this.role) {
+                    this.errorMsg = '身份不匹配：您是"' + this.getRoleName(user.role)
+                        + '"，请切换正确的身份后重新登录'
+                    localStorage.removeItem('token')
+                    return
+                }
+                const pages = { student:'student.html', teacher:'teacher.html', admin:'index.html' }
+                location.href = pages[this.role] || 'student.html'
+            } catch (e) {
+                if (e.response && e.response.data) {
+                    this.errorMsg = '登录失败：' + (e.response.data.message || '未知错误')
+                } else {
+                    this.errorMsg = '无法连接服务器，请确认后端已启动'
+                }
+            }
+        },
+        getRoleName(role) {
+            return { student:'学生', teacher:'师傅', admin:'管理员' }[role] || role
+        }
+    }
+}).mount('#app')
+</script>
+</body>
+</html>

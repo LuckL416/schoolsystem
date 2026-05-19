@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <title>宿舍报修系统 - 宿管端</title>
+    <script src="https://cdn.jsdelivr.net/npm/vue@3"></script>
+    <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+    <style>
+        *{margin:0;padding:0;box-sizing:border-box}
+        body{padding:20px;background:#f5f7fa;font-family:"Microsoft YaHei","PingFang SC",sans-serif}
+        .container{max-width:1200px;margin:0 auto}
+        .title{font-size:24px;margin-bottom:20px;color:#333;font-weight:600}
+        .stats{display:grid;grid-template-columns:repeat(4,1fr);gap:16px;margin-bottom:20px}
+        .stat-card{padding:24px;background:white;border-radius:12px;box-shadow:0 2px 10px rgba(0,0,0,0.04);text-align:center}
+        .stat-card h3{font-size:14px;color:#999;margin-bottom:10px}
+        .stat-card .num{font-size:32px;font-weight:bold;color:#333}
+        .stat-card.pending .num{color:#e6a23c}
+        .stat-card.processing .num{color:#409eff}
+        .stat-card.completed .num{color:#67c23a}
+        .btn{padding:10px 20px;background:#409eff;color:white;border:none;border-radius:6px;cursor:pointer;font-size:14px;transition:opacity 0.2s}
+        .btn:hover{opacity:0.85}
+        .btn-green{background:#67c23a}
+        .btn-back{background:#909399;margin-bottom:16px;width:auto;padding:8px 20px;font-size:13px}
+        .toolbar{display:flex;gap:10px;margin-bottom:20px}
+        .table-wrap{background:white;border-radius:12px;overflow:hidden;box-shadow:0 2px 10px rgba(0,0,0,0.04)}
+        table{width:100%;border-collapse:collapse}
+        th,td{padding:12px;text-align:left;border-bottom:1px solid #eee;font-size:14px}
+        th{background:#f8f9fa;color:#666;font-weight:500}
+        .tag{display:inline-block;padding:3px 10px;border-radius:12px;font-size:12px;font-weight:500}
+        .tag-pending{background:#fdf6ec;color:#e6a23c}
+        .tag-processing{background:#ecf5ff;color:#409eff}
+        .tag-completed{background:#f0f9eb;color:#67c23a}
+    </style>
+</head>
+<body>
+<div id="app" class="container">
+    <button class="btn-back" @click="goBack">← 返回登录</button>
+    <div class="title">宿舍报修系统 - 宿管管理端</div>
+
+    <div class="stats">
+        <div class="stat-card">
+            <h3>总工单</h3>
+            <div class="num">{{stats.total || 0}}</div>
+        </div>
+        <div class="stat-card pending">
+            <h3>待处理</h3>
+            <div class="num">{{stats.pending || 0}}</div>
+        </div>
+        <div class="stat-card processing">
+            <h3>处理中</h3>
+            <div class="num">{{stats.processing || 0}}</div>
+        </div>
+        <div class="stat-card completed">
+            <h3>已完成</h3>
+            <div class="num">{{stats.completed || 0}}</div>
+        </div>
+    </div>
+
+    <div class="toolbar">
+        <button class="btn" @click="exportExcel">导出 Excel</button>
+        <button class="btn btn-green" @click="refresh">刷新数据</button>
+    </div>
+
+    <div class="table-wrap">
+        <table>
+            <tr>
+                <th>编号</th>
+                <th>描述</th>
+                <th>状态</th>
+                <th>提交时间</th>
+            </tr>
+            <tr v-for="item in list">
+                <td>{{item.orderNo || item.id}}</td>
+                <td>{{item.description}}</td>
+                <td><span class="tag" :class="statusClass(item.status)">{{statusText(item.status)}}</span></td>
+                <td>{{formatTime(item.submitTime)}}</td>
+            </tr>
+        </table>
+    </div>
+</div>
+
+<script src="api.js"></script>
+<script>
+const { createApp } = Vue
+createApp({
+    data() {
+        return {
+            stats: {},
+            list: [],
+            user: {}
+        }
+    },
+    mounted() {
+        if (!api.getToken()) { api.goLogin(); return }
+        this.loadUser()
+        this.refresh()
+    },
+    methods: {
+        async loadUser() {
+            const res = await api.get('/auth/info')
+            this.user = res.data.data
+        },
+        async loadStats() {
+            const res = await api.get('/stats/dashboard')
+            this.stats = res.data.data
+        },
+        async loadList() {
+            const res = await api.get('/order/all')
+            this.list = res.data.data || []
+        },
+        async refresh() {
+            await Promise.all([this.loadStats(), this.loadList()])
+        },
+        exportExcel() {
+            window.open(API_BASE + '/stats/export')
+        },
+        statusText(status) {
+            const map = { pending:'待处理', processing:'处理中', completed:'已完成' }
+            return map[status] || status
+        },
+        statusClass(status) {
+            return 'tag-' + (status || '')
+        },
+        formatTime(t) {
+            if (!t) return ''
+            return t.replace('T',' ').substring(0,19)
+        },
+        goBack() { api.goLogin() }
+    }
+}).mount('#app')
+</script>
+</body>
+</html>

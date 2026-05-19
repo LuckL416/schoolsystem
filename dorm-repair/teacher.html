@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <title>师傅端 - 维修管理</title>
+    <script src="https://cdn.jsdelivr.net/npm/vue@3"></script>
+    <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+    <style>
+        *{margin:0;padding:0;box-sizing:border-box}
+        body{padding:20px;background:#f5f7fa;font-family:"Microsoft YaHei","PingFang SC",sans-serif}
+        .container{max-width:1000px;margin:0 auto}
+        .title{font-size:24px;margin-bottom:20px;color:#333;font-weight:600}
+        .card{background:white;padding:24px;border-radius:12px;box-shadow:0 2px 12px rgba(0,0,0,0.04)}
+        table{width:100%;border-collapse:collapse}
+        th,td{padding:12px;text-align:left;border-bottom:1px solid #eee;font-size:14px}
+        th{background:#f8f9fa;color:#666;font-weight:500}
+        button{padding:6px 14px;background:#409eff;color:white;border:none;border-radius:4px;cursor:pointer;margin-right:5px;font-size:13px;transition:opacity 0.2s}
+        button:hover{opacity:0.85}
+        .btn-back{background:#909399;margin-bottom:16px;width:auto;padding:8px 20px;font-size:13px}
+        .btn-accept{background:#e6a23c}
+        .btn-complete{background:#67c23a}
+        .tag{display:inline-block;padding:3px 10px;border-radius:12px;font-size:12px;font-weight:500}
+        .tag-pending{background:#fdf6ec;color:#e6a23c}
+        .tag-processing{background:#ecf5ff;color:#409eff}
+        .tag-completed{background:#f0f9eb;color:#67c23a}
+    </style>
+</head>
+<body>
+<div id="app" class="container">
+    <button class="btn-back" @click="goBack">← 返回登录</button>
+    <div class="title">维修师傅工作台</div>
+    <div class="card">
+        <table>
+            <tr><th>编号</th><th>描述</th><th>状态</th><th>提交时间</th><th>操作</th></tr>
+            <tr v-for="item in list">
+                <td>{{item.orderNo || item.id}}</td>
+                <td>{{item.description}}</td>
+                <td><span class="tag" :class="statusClass(item.status)">{{statusText(item.status)}}</span></td>
+                <td>{{formatTime(item.submitTime)}}</td>
+                <td>
+                    <button v-if="item.status=='pending'" class="btn-accept" @click="accept(item.id)">接单</button>
+                    <button v-if="item.status=='processing'" class="btn-complete" @click="complete(item.id)">完工</button>
+                    <span v-if="item.status=='completed'">-</span>
+                </td>
+            </tr>
+        </table>
+    </div>
+</div>
+
+<script src="api.js"></script>
+<script>
+const { createApp } = Vue
+createApp({
+    data() {
+        return {
+            list: [],
+            user: {}
+        }
+    },
+    mounted() {
+        if (!api.getToken()) { api.goLogin(); return }
+        this.loadUser()
+        this.loadList()
+    },
+    methods: {
+        async loadUser() {
+            const res = await api.get('/auth/info')
+            this.user = res.data.data
+        },
+        async loadList() {
+            const res = await api.get('/order/all')
+            this.list = res.data.data || []
+        },
+        async accept(id) {
+            await api.post(`/order/accept/${id}`)
+            alert('接单成功！')
+            this.loadList()
+        },
+        async complete(id) {
+            await api.post(`/order/complete/${id}`)
+            alert('完工成功！')
+            this.loadList()
+        },
+        statusText(status) {
+            const map = { pending:'待处理', processing:'处理中', completed:'已完成' }
+            return map[status] || status
+        },
+        statusClass(status) {
+            return 'tag-' + (status || '')
+        },
+        formatTime(t) {
+            if (!t) return ''
+            return t.replace('T',' ').substring(0,19)
+        },
+        goBack() { api.goLogin() }
+    }
+}).mount('#app')
+</script>
+</body>
+</html>
