@@ -58,9 +58,21 @@ public class WorkOrderService {
         return Result.success(list);
     }
 
-    // 查询所有工单（宿管/师傅）
-    public Result<List<WorkOrder>> allList() {
+    // 查询所有工单（支持筛选）
+    public Result<List<WorkOrder>> allList(String status, Long dormId, String startDate, String endDate) {
         LambdaQueryWrapper<WorkOrder> wrapper = new LambdaQueryWrapper<>();
+        if (status != null && !status.isEmpty()) {
+            wrapper.eq(WorkOrder::getStatus, status);
+        }
+        if (dormId != null) {
+            wrapper.eq(WorkOrder::getDormId, dormId);
+        }
+        if (startDate != null && !startDate.isEmpty()) {
+            wrapper.ge(WorkOrder::getSubmitTime, startDate + " 00:00:00");
+        }
+        if (endDate != null && !endDate.isEmpty()) {
+            wrapper.le(WorkOrder::getSubmitTime, endDate + " 23:59:59");
+        }
         wrapper.orderByDesc(WorkOrder::getSubmitTime);
         List<WorkOrder> list = workOrderMapper.selectList(wrapper);
         return Result.success(list);

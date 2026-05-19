@@ -32,8 +32,13 @@ public class WorkOrderController {
     }
 
     @GetMapping("/all")
-    public Result<List<WorkOrder>> allOrders() {
-        return workOrderService.allList();
+    public Result<List<WorkOrder>> allOrders(
+            @RequestParam(required = false) String status,
+            @RequestParam(required = false) Long dormId,
+            @RequestParam(required = false) String startDate,
+            @RequestParam(required = false) String endDate
+    ) {
+        return workOrderService.allList(status, dormId, startDate, endDate);
     }
 
     @PostMapping("/accept/{orderId}")

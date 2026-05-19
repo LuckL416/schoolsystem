@@ -5,6 +5,7 @@
     <title>宿舍报修系统 - 宿管端</title>
     <script src="https://cdn.jsdelivr.net/npm/vue@3"></script>
     <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4"></script>
     <style>
         *{margin:0;padding:0;box-sizing:border-box}
         body{padding:20px;background:#f5f7fa;font-family:"Microsoft YaHei","PingFang SC",sans-serif}
@@ -17,11 +18,17 @@
         .stat-card.pending .num{color:#e6a23c}
         .stat-card.processing .num{color:#409eff}
         .stat-card.completed .num{color:#67c23a}
-        .btn{padding:10px 20px;background:#409eff;color:white;border:none;border-radius:6px;cursor:pointer;font-size:14px;transition:opacity 0.2s}
+        .btn{padding:10px 20px;color:white;border:none;border-radius:6px;cursor:pointer;font-size:14px;transition:opacity 0.2s}
         .btn:hover{opacity:0.85}
+        .btn-primary{background:#409eff}
         .btn-green{background:#67c23a}
         .btn-back{background:#909399;margin-bottom:16px;width:auto;padding:8px 20px;font-size:13px}
-        .toolbar{display:flex;gap:10px;margin-bottom:20px}
+        .toolbar{display:flex;gap:10px;margin-bottom:20px;flex-wrap:wrap;align-items:center}
+        .toolbar select,.toolbar input{padding:8px 12px;border:1px solid #ddd;border-radius:6px;outline:none;font-size:13px}
+        .toolbar select:focus,.toolbar input:focus{border-color:#409eff}
+        .chart-row{display:grid;grid-template-columns:2fr 1fr;gap:16px;margin-bottom:20px}
+        .chart-card{background:white;padding:20px;border-radius:12px;box-shadow:0 2px 10px rgba(0,0,0,0.04)}
+        .chart-card h3{font-size:14px;color:#666;margin-bottom:14px}
         .table-wrap{background:white;border-radius:12px;overflow:hidden;box-shadow:0 2px 10px rgba(0,0,0,0.04)}
         table{width:100%;border-collapse:collapse}
         th,td{padding:12px;text-align:left;border-bottom:1px solid #eee;font-size:14px}
@@ -34,41 +41,48 @@
 </head>
 <body>
 <div id="app" class="container">
-    <button class="btn-back" @click="goBack">← 返回登录</button>
+    <div style="display:flex;gap:10px;margin-bottom:16px">
+        <button class="btn btn-back" @click="goBack">← 返回登录</button>
+        <button class="btn" style="background:#e6a23c;padding:8px 20px;font-size:13px" @click="goAdmin">系统管理</button>
+    </div>
     <div class="title">宿舍报修系统 - 宿管管理端</div>
 
     <div class="stats">
-        <div class="stat-card">
-            <h3>总工单</h3>
-            <div class="num">{{stats.total || 0}}</div>
-        </div>
-        <div class="stat-card pending">
-            <h3>待处理</h3>
-            <div class="num">{{stats.pending || 0}}</div>
-        </div>
-        <div class="stat-card processing">
-            <h3>处理中</h3>
-            <div class="num">{{stats.processing || 0}}</div>
-        </div>
-        <div class="stat-card completed">
-            <h3>已完成</h3>
-            <div class="num">{{stats.completed || 0}}</div>
-        </div>
+        <div class="stat-card"><h3>总工单</h3><div class="num">{{stats.total || 0}}</div></div>
+        <div class="stat-card pending"><h3>待处理</h3><div class="num">{{stats.pending || 0}}</div></div>
+        <div class="stat-card processing"><h3>处理中</h3><div class="num">{{stats.processing || 0}}</div></div>
+        <div class="stat-card completed"><h3>已完成</h3><div class="num">{{stats.completed || 0}}</div></div>
     </div>
 
-    <div class="toolbar">
-        <button class="btn" @click="exportExcel">导出 Excel</button>
-        <button class="btn btn-green" @click="refresh">刷新数据</button>
+    <div class="chart-row">
+        <div class="chart-card">
+            <h3>近7天报修趋势</h3>
+            <canvas id="trendChart" height="200"></canvas>
+        </div>
+        <div class="chart-card">
+            <h3>筛选工单</h3>
+            <div style="display:flex;flex-direction:column;gap:10px">
+                <select v-model="filter.status">
+                    <option value="">全部状态</option>
+                    <option value="pending">待处理</option>
+                    <option value="processing">处理中</option>
+                    <option value="completed">已完成</option>
+                </select>
+                <select v-model="filter.dormId">
+                    <option :value="null">全部宿舍</option>
+                    <option v-for="d in dorms" :value="d.id">{{d.building}} {{d.room}}</option>
+                </select>
+                <input type="date" v-model="filter.startDate" placeholder="开始日期" />
+                <input type="date" v-model="filter.endDate" placeholder="结束日期" />
+                <button class="btn btn-primary" @click="searchOrders">搜索</button>
+                <button class="btn btn-green" @click="exportExcel">导出 Excel</button>
+            </div>
+        </div>
     </div>
 
     <div class="table-wrap">
         <table>
-            <tr>
-                <th>编号</th>
-                <th>描述</th>
-                <th>状态</th>
-                <th>提交时间</th>
-            </tr>
+            <tr><th>编号</th><th>描述</th><th>状态</th><th>提交时间</th></tr>
             <tr v-for="item in list">
                 <td>{{item.orderNo || item.id}}</td>
                 <td>{{item.description}}</td>
@@ -85,47 +99,76 @@ const { createApp } = Vue
 createApp({
     data() {
         return {
-            stats: {},
-            list: [],
-            user: {}
+            stats: {}, list: [], dorms: [], user: {},
+            filter: { status:'', dormId:null, startDate:'', endDate:'' },
+            trendChart: null
         }
     },
     mounted() {
         if (!api.getToken()) { api.goLogin(); return }
-        this.loadUser()
+        this.loadDorms()
         this.refresh()
+        this.loadTrend()
     },
     methods: {
-        async loadUser() {
-            const res = await api.get('/auth/info')
-            this.user = res.data.data
+        async loadDorms() {
+            const res = await api.get('/dorm/list')
+            this.dorms = res.data.data || []
         },
         async loadStats() {
             const res = await api.get('/stats/dashboard')
             this.stats = res.data.data
         },
-        async loadList() {
-            const res = await api.get('/order/all')
+        async loadList(params) {
+            const res = await api.get('/order/all', params)
             this.list = res.data.data || []
         },
         async refresh() {
             await Promise.all([this.loadStats(), this.loadList()])
         },
+        async searchOrders() {
+            const params = {}
+            if (this.filter.status) params.status = this.filter.status
+            if (this.filter.dormId) params.dormId = this.filter.dormId
+            if (this.filter.startDate) params.startDate = this.filter.startDate
+            if (this.filter.endDate) params.endDate = this.filter.endDate
+            await this.loadList(params)
+        },
+        async loadTrend() {
+            const res = await api.get('/stats/trend?days=7')
+            const data = res.data.data
+            const labels = Object.keys(data)
+            const values = Object.values(data)
+            const ctx = document.getElementById('trendChart')
+            if (this.trendChart) this.trendChart.destroy()
+            this.trendChart = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: labels.map(l => l.substring(5)),
+                    datasets: [{ label:'工单数', data:values, backgroundColor:'#409eff', borderRadius:4 }]
+                },
+                options: {
+                    responsive:true,
+                    plugins: { legend:{display:false} },
+                    scales: { y:{beginAtZero:true, ticks:{stepSize:1}} }
+                }
+            })
+        },
         exportExcel() {
-            window.open(API_BASE + '/stats/export')
+            const params = new URLSearchParams()
+            if (this.filter.status) params.set('status', this.filter.status)
+            if (this.filter.startDate) params.set('startDate', this.filter.startDate)
+            if (this.filter.endDate) params.set('endDate', this.filter.endDate)
+            const qs = params.toString()
+            window.open(API_BASE + '/stats/export' + (qs ? '?' + qs : ''))
         },
-        statusText(status) {
-            const map = { pending:'待处理', processing:'处理中', completed:'已完成' }
-            return map[status] || status
+        statusText(s) {
+            return {pending:'待处理', processing:'处理中', completed:'已完成'}[s] || s
         },
-        statusClass(status) {
-            return 'tag-' + (status || '')
-        },
-        formatTime(t) {
-            if (!t) return ''
-            return t.replace('T',' ').substring(0,19)
-        },
-        goBack() { api.goLogin() }
+        statusClass(s) { return 'tag-' + (s || '') },
+        formatTime(t) { return t ? t.replace('T',' ').substring(0,19) : '' },
+        goBack() { api.goLogin() },
+        goAdmin() { location.href = 'admin.html' }
     }
 }).mount('#app')
 </script>
