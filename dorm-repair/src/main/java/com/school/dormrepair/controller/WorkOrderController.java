@@ -45,8 +45,20 @@ public class WorkOrderController {
     }
 
     @PostMapping("/complete/{orderId}")
-    public Result<String> complete(@PathVariable Long orderId) {
-        return workOrderService.complete(orderId);
+    public Result<String> complete(
+            @PathVariable Long orderId,
+            @RequestParam(required = false) String remark
+    ) {
+        return workOrderService.complete(orderId, remark);
+    }
+
+    // 学生取消工单
+    @PostMapping("/cancel/{orderId}")
+    public Result<String> cancel(
+            @PathVariable Long orderId,
+            @RequestAttribute("userId") Long userId
+    ) {
+        return workOrderService.cancel(orderId, userId);
     }
 
     @PostMapping("/evaluate/{orderId}")

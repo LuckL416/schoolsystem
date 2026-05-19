@@ -8,13 +8,14 @@
     <style>
         *{margin:0;padding:0;box-sizing:border-box}
         body{padding:20px;background:#f5f7fa;font-family:"Microsoft YaHei","PingFang SC",sans-serif}
-        .container{max-width:1000px;margin:0 auto}
+        .container{max-width:1100px;margin:0 auto}
         .title{font-size:24px;margin-bottom:20px;color:#333;font-weight:600}
         .card{background:white;padding:24px;border-radius:12px;box-shadow:0 2px 12px rgba(0,0,0,0.04)}
         table{width:100%;border-collapse:collapse}
         th,td{padding:12px;text-align:left;border-bottom:1px solid #eee;font-size:14px}
         th{background:#f8f9fa;color:#666;font-weight:500}
-        button{padding:6px 14px;background:#409eff;color:white;border:none;border-radius:4px;cursor:pointer;margin-right:5px;font-size:13px;transition:opacity 0.2s}
+        td{vertical-align:middle}
+        button{padding:6px 14px;color:white;border:none;border-radius:4px;cursor:pointer;margin-right:5px;font-size:13px;transition:opacity 0.2s}
         button:hover{opacity:0.85}
         .btn-back{background:#909399;margin-bottom:16px;width:auto;padding:8px 20px;font-size:13px}
         .btn-accept{background:#e6a23c}
@@ -23,6 +24,17 @@
         .tag-pending{background:#fdf6ec;color:#e6a23c}
         .tag-processing{background:#ecf5ff;color:#409eff}
         .tag-completed{background:#f0f9eb;color:#67c23a}
+        .remark-text{font-size:12px;color:#999;max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+        /* 弹窗 */
+        .modal-overlay{position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.4);display:flex;justify-content:center;align-items:center;z-index:100}
+        .modal-box{background:white;padding:28px;border-radius:12px;width:420px;box-shadow:0 8px 32px rgba(0,0,0,0.15)}
+        .modal-box h3{margin-bottom:16px;font-size:18px;color:#333}
+        .modal-box textarea{width:100%;height:100px;padding:12px;border:1px solid #ddd;border-radius:8px;outline:none;font-size:14px;resize:vertical}
+        .modal-box textarea:focus{border-color:#67c23a}
+        .modal-btns{display:flex;gap:10px;margin-top:16px;justify-content:flex-end}
+        .modal-btns button{width:auto;padding:8px 24px}
+        .btn-confirm{background:#67c23a}
+        .btn-cancel-modal{background:#909399}
     </style>
 </head>
 <body>
@@ -31,19 +43,35 @@
     <div class="title">维修师傅工作台</div>
     <div class="card">
         <table>
-            <tr><th>编号</th><th>描述</th><th>状态</th><th>提交时间</th><th>操作</th></tr>
+            <tr><th>编号</th><th>描述</th><th>状态</th><th>提交时间</th><th>维修备注</th><th>操作</th></tr>
             <tr v-for="item in list">
                 <td>{{item.orderNo || item.id}}</td>
                 <td>{{item.description}}</td>
                 <td><span class="tag" :class="statusClass(item.status)">{{statusText(item.status)}}</span></td>
                 <td>{{formatTime(item.submitTime)}}</td>
                 <td>
+                    <span v-if="item.remark" class="remark-text" :title="item.remark">{{item.remark}}</span>
+                    <span v-else style="color:#ccc;font-size:12px">-</span>
+                </td>
+                <td>
                     <button v-if="item.status=='pending'" class="btn-accept" @click="accept(item.id)">接单</button>
-                    <button v-if="item.status=='processing'" class="btn-complete" @click="complete(item.id)">完工</button>
-                    <span v-if="item.status=='completed'">-</span>
+                    <button v-if="item.status=='processing'" class="btn-complete" @click="showCompleteModal(item.id)">完工</button>
+                    <span v-if="item.status=='completed'" style="color:#67c23a;font-size:13px">已完成</span>
                 </td>
             </tr>
         </table>
+    </div>
+
+    <!-- 完工备注弹窗 -->
+    <div v-if="showModal" class="modal-overlay" @click.self="showModal=false">
+        <div class="modal-box">
+            <h3>填写维修备注</h3>
+            <textarea v-model="remarkInput" placeholder="请输入维修处理方法和耗材（可选）..."></textarea>
+            <div class="modal-btns">
+                <button class="btn-cancel-modal" @click="showModal=false">取消</button>
+                <button class="btn-confirm" @click="confirmComplete">确认完工</button>
+            </div>
+        </div>
     </div>
 </div>
 
@@ -54,7 +82,10 @@ createApp({
     data() {
         return {
             list: [],
-            user: {}
+            user: {},
+            showModal: false,
+            remarkInput: '',
+            completingOrderId: null
         }
     },
     mounted() {
@@ -76,8 +107,15 @@ createApp({
             alert('接单成功！')
             this.loadList()
         },
-        async complete(id) {
-            await api.post(`/order/complete/${id}`)
+        showCompleteModal(orderId) {
+            this.completingOrderId = orderId
+            this.remarkInput = ''
+            this.showModal = true
+        },
+        async confirmComplete() {
+            const params = this.remarkInput ? `?remark=${encodeURIComponent(this.remarkInput)}` : ''
+            await api.post(`/order/complete/${this.completingOrderId}${params}`)
+            this.showModal = false
             alert('完工成功！')
             this.loadList()
         },

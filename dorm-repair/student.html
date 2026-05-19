@@ -12,12 +12,20 @@
         .title{font-size:24px;margin-bottom:20px;color:#333;font-weight:600}
         .card{background:white;padding:24px;border-radius:12px;margin-bottom:20px;box-shadow:0 2px 12px rgba(0,0,0,0.04)}
         .card h3{margin-bottom:14px;font-size:16px;color:#333}
-        input,textarea,button{width:100%;padding:12px;margin-bottom:10px;border:1px solid #ddd;border-radius:8px;outline:none;font-size:14px}
-        input:focus,textarea:focus{border-color:#409eff}
+        .form-row{display:flex;gap:10px;margin-bottom:10px}
+        select,input,textarea,button{width:100%;padding:12px;border:1px solid #ddd;border-radius:8px;outline:none;font-size:14px}
+        select{background:white;cursor:pointer}
+        input:focus,textarea:focus,select:focus{border-color:#409eff}
         textarea{resize:vertical;min-height:80px}
         button{background:#409eff;color:white;border:none;cursor:pointer;font-weight:500;transition:opacity 0.2s}
         button:hover{opacity:0.85}
         .btn-back{background:#909399;margin-bottom:16px;width:auto;padding:8px 20px;font-size:13px}
+        .btn-cancel{background:#f56c6c;width:auto;padding:5px 14px;font-size:12px}
+        .btn-evaluate{width:auto;padding:5px 14px;font-size:12px;background:#67c23a}
+        .upload-row{display:flex;gap:10px;align-items:center;margin-bottom:10px}
+        .upload-row input[type=file]{width:auto;flex:1}
+        .upload-row button{width:auto;padding:8px 16px;font-size:13px;background:#67c23a}
+        .preview-img{max-width:120px;max-height:80px;border-radius:6px;margin-right:8px}
         table{width:100%;background:white;border-radius:8px;overflow:hidden;border-collapse:collapse}
         th,td{padding:12px;text-align:left;border-bottom:1px solid #eee;font-size:14px}
         th{background:#f8f9fa;color:#666;font-weight:500}
@@ -26,6 +34,8 @@
         .tag-processing{background:#ecf5ff;color:#409eff}
         .tag-completed{background:#f0f9eb;color:#67c23a}
         .btn-evaluate{width:auto;padding:5px 14px;font-size:12px;background:#67c23a}
+        .file-item{display:flex;align-items:center;gap:8px;margin-top:6px}
+        .file-item span{font-size:12px;color:#999}
     </style>
 </head>
 <body>
@@ -35,26 +45,46 @@
 
     <div class="card">
         <h3>提交报修</h3>
-        <input v-model="form.dormId" placeholder="宿舍ID" />
-        <input v-model="form.faultTypeId" placeholder="故障类型ID" />
+        <div class="form-row">
+            <select v-model="form.dormId">
+                <option :value="null" disabled>请选择宿舍</option>
+                <option v-for="d in dorms" :value="d.id">{{d.building}} {{d.room}}</option>
+            </select>
+            <select v-model="form.faultTypeId">
+                <option :value="null" disabled>请选择故障类型</option>
+                <option v-for="f in faultTypes" :value="f.id">{{f.name}}（{{f.workType}}）</option>
+            </select>
+        </div>
         <textarea v-model="form.description" placeholder="请描述故障情况..."></textarea>
+        <div class="upload-row">
+            <input type="file" ref="fileInput" accept="image/*" @change="onFileSelected" />
+            <button @click="uploadImage" :disabled="!selectedFile || uploading">
+                {{uploading ? '上传中...' : '上传图片'}}
+            </button>
+        </div>
+        <div v-if="form.imageUrls" class="file-item">
+            <span>已上传: {{form.imageUrls}}</span>
+        </div>
         <button @click="submit">提交报修</button>
     </div>
 
     <div class="card">
         <h3>我的报修记录</h3>
         <table>
-            <tr><th>编号</th><th>描述</th><th>状态</th><th>提交时间</th><th>操作</th></tr>
+            <tr><th>编号</th><th>宿舍</th><th>故障类型</th><th>描述</th><th>状态</th><th>提交时间</th><th>操作</th></tr>
             <tr v-for="item in list">
                 <td>{{item.orderNo || item.id}}</td>
+                <td>{{getDormName(item.dormId)}}</td>
+                <td>{{getFaultTypeName(item.faultTypeId)}}</td>
                 <td>{{item.description}}</td>
                 <td><span class="tag" :class="statusClass(item.status)">{{statusText(item.status)}}</span></td>
                 <td>{{formatTime(item.submitTime)}}</td>
                 <td>
+                    <button v-if="item.status==='pending'" class="btn-cancel" @click="cancelOrder(item.id)">取消</button>
                     <button v-if="item.status==='completed' && !item.evaluateStar"
                             class="btn-evaluate" @click="evaluate(item.id,5)">评5星</button>
                     <span v-if="item.status==='completed' && item.evaluateStar"
-                          style="color:#e6a23c">已评{{item.evaluateStar}}星</span>
+                          style="color:#e6a23c;font-size:13px">已评{{item.evaluateStar}}星</span>
                 </td>
             </tr>
         </table>
@@ -67,14 +97,20 @@ const { createApp } = Vue
 createApp({
     data() {
         return {
-            form: { dormId:null, faultTypeId:null, description:'' },
+            form: { dormId:null, faultTypeId:null, description:'', imageUrls:'' },
             list: [],
-            user: {}
+            dorms: [],
+            faultTypes: [],
+            user: {},
+            selectedFile: null,
+            uploading: false
         }
     },
     mounted() {
         if (!api.getToken()) { api.goLogin(); return }
         this.loadUser()
+        this.loadDorms()
+        this.loadFaultTypes()
         this.loadList()
     },
     methods: {
@@ -82,9 +118,37 @@ createApp({
             const res = await api.get('/auth/info')
             this.user = res.data.data
         },
+        async loadDorms() {
+            const res = await api.get('/dorm/list')
+            this.dorms = res.data.data || []
+        },
+        async loadFaultTypes() {
+            const res = await api.get('/fault-type/list')
+            this.faultTypes = res.data.data || []
+        },
         async loadList() {
             const res = await api.get('/order/my')
             this.list = res.data.data || []
+        },
+        onFileSelected(e) {
+            this.selectedFile = e.target.files[0] || null
+        },
+        async uploadImage() {
+            if (!this.selectedFile) return
+            this.uploading = true
+            try {
+                const formData = new FormData()
+                formData.append('file', this.selectedFile)
+                const res = await axios.post(API_BASE + '/file/upload', formData, {
+                    headers: { Authorization: 'Bearer ' + api.getToken() }
+                })
+                this.form.imageUrls = res.data.data
+                this.$refs.fileInput.value = ''
+                this.selectedFile = null
+            } catch(e) {
+                alert('上传失败')
+            }
+            this.uploading = false
         },
         async submit() {
             if (!this.form.dormId || !this.form.faultTypeId || !this.form.description) {
@@ -94,12 +158,27 @@ createApp({
             await api.post('/order/submit', this.form)
             alert('提交成功！')
             this.form.description = ''
+            this.form.imageUrls = ''
+            this.loadList()
+        },
+        async cancelOrder(id) {
+            if (!confirm('确定要取消这个报修吗？')) return
+            await api.post(`/order/cancel/${id}`)
+            alert('已取消')
             this.loadList()
         },
         async evaluate(id, star) {
             await api.post(`/order/evaluate/${id}?star=${star}`)
             alert('评价成功！')
             this.loadList()
+        },
+        getDormName(dormId) {
+            const d = this.dorms.find(x => x.id === dormId)
+            return d ? d.building + d.room : dormId
+        },
+        getFaultTypeName(faultTypeId) {
+            const f = this.faultTypes.find(x => x.id === faultTypeId)
+            return f ? f.name : faultTypeId
         },
         statusText(status) {
             const map = { pending:'待处理', processing:'处理中', completed:'已完成' }
