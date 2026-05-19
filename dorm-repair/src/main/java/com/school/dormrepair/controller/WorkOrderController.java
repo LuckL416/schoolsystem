@@ -6,8 +6,6 @@ import com.school.dormrepair.service.WorkOrderService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 
-import java.util.List;
-
 @RestController
 @RequestMapping("/order")
 public class WorkOrderController {
@@ -25,20 +23,24 @@ public class WorkOrderController {
     }
 
     @GetMapping("/my")
-    public Result<List<WorkOrder>> myOrders(
-            @RequestAttribute("userId") Long userId
+    public Result<com.baomidou.mybatisplus.extension.plugins.pagination.Page<WorkOrder>> myOrders(
+            @RequestAttribute("userId") Long userId,
+            @RequestParam(defaultValue = "1") Integer page,
+            @RequestParam(defaultValue = "10") Integer size
     ) {
-        return workOrderService.listByStudent(userId);
+        return workOrderService.listByStudent(userId, page, size);
     }
 
     @GetMapping("/all")
-    public Result<List<WorkOrder>> allOrders(
+    public Result<com.baomidou.mybatisplus.extension.plugins.pagination.Page<WorkOrder>> allOrders(
             @RequestParam(required = false) String status,
             @RequestParam(required = false) Long dormId,
             @RequestParam(required = false) String startDate,
-            @RequestParam(required = false) String endDate
+            @RequestParam(required = false) String endDate,
+            @RequestParam(defaultValue = "1") Integer page,
+            @RequestParam(defaultValue = "10") Integer size
     ) {
-        return workOrderService.allList(status, dormId, startDate, endDate);
+        return workOrderService.allList(status, dormId, startDate, endDate, page, size);
     }
 
     @PostMapping("/accept/{orderId}")

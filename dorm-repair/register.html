@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <title>学生注册 - 宿舍报修系统</title>
+    <script src="https://cdn.jsdelivr.net/npm/vue@3"></script>
+    <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+    <style>
+        *{margin:0;padding:0;box-sizing:border-box}
+        body{background:linear-gradient(135deg,#e8f4fc,#f0f2f5,#e8fce8);display:flex;justify-content:center;align-items:center;min-height:100vh;font-family:"Microsoft YaHei","PingFang SC",sans-serif}
+        .box{width:400px;background:white;padding:36px;border-radius:16px;box-shadow:0 8px 32px rgba(0,0,0,0.1)}
+        .title{text-align:center;font-size:22px;margin-bottom:24px;color:#333;font-weight:600}
+        input{width:100%;height:44px;padding:0 16px;margin-bottom:16px;border:1.5px solid #e4e7ed;border-radius:8px;outline:none;font-size:14px}
+        input:focus{border-color:#67c23a}
+        .btn{width:100%;height:46px;background:#67c23a;color:white;border:none;border-radius:8px;font-size:16px;cursor:pointer;font-weight:500}
+        .btn:hover{opacity:0.88}
+        .tip{text-align:center;margin-top:16px;color:#999;font-size:13px}
+        .tip a{color:#409eff;text-decoration:none}
+        .error{color:#f56c6c;font-size:13px;text-align:center;margin-top:8px;min-height:20px}
+    </style>
+</head>
+<body>
+<div id="app" class="box">
+    <div class="title">学生注册</div>
+    <input v-model="form.name" placeholder="姓名" />
+    <input v-model="form.username" placeholder="用户名" />
+    <input v-model="form.password" type="password" placeholder="密码" />
+    <input v-model="form.phone" placeholder="手机号（选填）" />
+    <input v-model.number="form.dormId" placeholder="宿舍ID" type="number" />
+    <button class="btn" @click="register">注 册</button>
+    <div class="error">{{errorMsg}}</div>
+    <div class="tip">已有账号？<a href="login.html">去登录</a></div>
+</div>
+<script src="api.js"></script>
+<script>
+const { createApp } = Vue
+createApp({
+    data() {
+        return { form:{name:'',username:'',password:'',phone:'',dormId:null}, errorMsg:'' }
+    },
+    methods: {
+        async register() {
+            this.errorMsg = ''
+            if (!this.form.name || !this.form.username || !this.form.password) {
+                this.errorMsg = '请填写必填项'; return
+            }
+            try {
+                const params = `name=${encodeURIComponent(this.form.name)}&username=${encodeURIComponent(this.form.username)}&password=${encodeURIComponent(this.form.password)}`
+                    + (this.form.phone ? `&phone=${encodeURIComponent(this.form.phone)}` : '')
+                    + (this.form.dormId ? `&dormId=${this.form.dormId}` : '')
+                await api.loginPost('/auth/register', params)
+                alert('注册成功！即将跳转登录页')
+                location.href = 'login.html'
+            } catch(e) {
+                this.errorMsg = e.response?.data?.message || '注册失败'
+            }
+        }
+    }
+}).mount('#app')
+</script>
+</body>
+</html>

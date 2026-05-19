@@ -25,4 +25,24 @@ public class AuthController {
     public Result<User> info(@RequestAttribute("userId") Long userId) {
         return userService.getUserInfo(userId);
     }
+
+    @PostMapping("/register")
+    public Result<String> register(
+            @RequestParam String name,
+            @RequestParam String username,
+            @RequestParam String password,
+            @RequestParam(required = false) String phone,
+            @RequestParam(required = false) Long dormId
+    ) {
+        return userService.register(name, username, password, phone, dormId);
+    }
+
+    @PostMapping("/change-password")
+    public Result<String> changePassword(
+            @RequestAttribute("userId") Long userId,
+            @RequestParam String oldPassword,
+            @RequestParam String newPassword
+    ) {
+        return userService.changePassword(userId, oldPassword, newPassword);
+    }
 }

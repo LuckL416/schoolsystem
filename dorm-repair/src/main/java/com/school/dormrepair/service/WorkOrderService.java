@@ -8,8 +8,6 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
-import java.util.List;
-
 @Service
 public class WorkOrderService {
 
@@ -49,17 +47,21 @@ public class WorkOrderService {
         return Result.success("取消成功");
     }
 
-    // 查询我的工单（学生）
-    public Result<List<WorkOrder>> listByStudent(Long studentId) {
+    // 查询我的工单（学生，支持分页）
+    public Result<com.baomidou.mybatisplus.extension.plugins.pagination.Page<WorkOrder>> listByStudent(Long studentId, Integer page, Integer size) {
+        com.baomidou.mybatisplus.extension.plugins.pagination.Page<WorkOrder> p =
+                new com.baomidou.mybatisplus.extension.plugins.pagination.Page<>(page != null ? page : 1, size != null ? size : 10);
         LambdaQueryWrapper<WorkOrder> wrapper = new LambdaQueryWrapper<>();
         wrapper.eq(WorkOrder::getStudentId, studentId);
         wrapper.orderByDesc(WorkOrder::getSubmitTime);
-        List<WorkOrder> list = workOrderMapper.selectList(wrapper);
-        return Result.success(list);
+        return Result.success(workOrderMapper.selectPage(p, wrapper));
     }
 
-    // 查询所有工单（支持筛选）
-    public Result<List<WorkOrder>> allList(String status, Long dormId, String startDate, String endDate) {
+    // 查询所有工单（支持筛选+分页）
+    public Result<com.baomidou.mybatisplus.extension.plugins.pagination.Page<WorkOrder>> allList(
+            String status, Long dormId, String startDate, String endDate, Integer page, Integer size) {
+        com.baomidou.mybatisplus.extension.plugins.pagination.Page<WorkOrder> p =
+                new com.baomidou.mybatisplus.extension.plugins.pagination.Page<>(page != null ? page : 1, size != null ? size : 10);
         LambdaQueryWrapper<WorkOrder> wrapper = new LambdaQueryWrapper<>();
         if (status != null && !status.isEmpty()) {
             wrapper.eq(WorkOrder::getStatus, status);
@@ -74,8 +76,7 @@ public class WorkOrderService {
             wrapper.le(WorkOrder::getSubmitTime, endDate + " 23:59:59");
         }
         wrapper.orderByDesc(WorkOrder::getSubmitTime);
-        List<WorkOrder> list = workOrderMapper.selectList(wrapper);
-        return Result.success(list);
+        return Result.success(workOrderMapper.selectPage(p, wrapper));
     }
 
     // 师傅接单

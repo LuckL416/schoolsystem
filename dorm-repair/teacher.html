@@ -9,6 +9,12 @@
         *{margin:0;padding:0;box-sizing:border-box}
         body{padding:20px;background:#f5f7fa;font-family:"Microsoft YaHei","PingFang SC",sans-serif}
         .container{max-width:1100px;margin:0 auto}
+        .top-bar{display:flex;justify-content:space-between;align-items:center;padding:12px 20px;background:white;border-radius:10px;margin-bottom:16px;box-shadow:0 2px 8px rgba(0,0,0,0.04)}
+        .top-bar .user-info{display:flex;align-items:center;gap:12px;font-size:14px;color:#333}
+        .top-bar .role-badge{display:inline-block;padding:3px 10px;border-radius:12px;font-size:12px;color:white}
+        .top-bar .role-student{background:#409eff}.top-bar .role-teacher{background:#e6a23c}.top-bar .role-admin{background:#67c23a}
+        .top-bar button{padding:6px 14px;border:none;border-radius:4px;cursor:pointer;font-size:12px;background:#f0f2f5;color:#666}
+        .top-bar button:hover{background:#e4e7ed}
         .title{font-size:24px;margin-bottom:20px;color:#333;font-weight:600}
         .card{background:white;padding:24px;border-radius:12px;box-shadow:0 2px 12px rgba(0,0,0,0.04)}
         table{width:100%;border-collapse:collapse}
@@ -17,7 +23,6 @@
         td{vertical-align:middle}
         button{padding:6px 14px;color:white;border:none;border-radius:4px;cursor:pointer;margin-right:5px;font-size:13px;transition:opacity 0.2s}
         button:hover{opacity:0.85}
-        .btn-back{background:#909399;margin-bottom:16px;width:auto;padding:8px 20px;font-size:13px}
         .btn-accept{background:#e6a23c}
         .btn-complete{background:#67c23a}
         .tag{display:inline-block;padding:3px 10px;border-radius:12px;font-size:12px;font-weight:500}
@@ -25,21 +30,33 @@
         .tag-processing{background:#ecf5ff;color:#409eff}
         .tag-completed{background:#f0f9eb;color:#67c23a}
         .remark-text{font-size:12px;color:#999;max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-        /* 弹窗 */
+        .pagination{display:flex;gap:8px;justify-content:center;margin-top:16px;align-items:center}
+        .pagination button{padding:6px 14px;font-size:13px;border:1px solid #ddd;background:white;border-radius:4px;cursor:pointer;color:#333}
+        .pagination button:disabled{color:#ccc;cursor:not-allowed}
+        .pagination span{font-size:13px;color:#666}
         .modal-overlay{position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.4);display:flex;justify-content:center;align-items:center;z-index:100}
         .modal-box{background:white;padding:28px;border-radius:12px;width:420px;box-shadow:0 8px 32px rgba(0,0,0,0.15)}
         .modal-box h3{margin-bottom:16px;font-size:18px;color:#333}
-        .modal-box textarea{width:100%;height:100px;padding:12px;border:1px solid #ddd;border-radius:8px;outline:none;font-size:14px;resize:vertical}
-        .modal-box textarea:focus{border-color:#67c23a}
+        .modal-box textarea,.modal-box input{width:100%;padding:12px;border:1px solid #ddd;border-radius:8px;outline:none;font-size:14px;resize:vertical;margin-bottom:12px}
+        .modal-box textarea:focus,.modal-box input:focus{border-color:#67c23a}
         .modal-btns{display:flex;gap:10px;margin-top:16px;justify-content:flex-end}
-        .modal-btns button{width:auto;padding:8px 24px}
         .btn-confirm{background:#67c23a}
         .btn-cancel-modal{background:#909399}
     </style>
 </head>
 <body>
 <div id="app" class="container">
-    <button class="btn-back" @click="goBack">← 返回登录</button>
+    <div class="top-bar">
+        <div class="user-info">
+            <span>欢迎，<strong>{{user.name || '--'}}</strong></span>
+            <span class="role-badge" :class="'role-'+user.role">{{roleText(user.role)}}</span>
+        </div>
+        <div style="display:flex;gap:8px">
+            <button @click="showPwdModal=true">修改密码</button>
+            <button @click="goBack">退出登录</button>
+        </div>
+    </div>
+
     <div class="title">维修师傅工作台</div>
     <div class="card">
         <table>
@@ -60,16 +77,34 @@
                 </td>
             </tr>
         </table>
+        <div class="pagination" v-if="totalPages > 1">
+            <button :disabled="currentPage<=1" @click="loadList(currentPage-1)">上一页</button>
+            <span>第 {{currentPage}} / {{totalPages}} 页（共 {{totalItems}} 条）</span>
+            <button :disabled="currentPage>=totalPages" @click="loadList(currentPage+1)">下一页</button>
+        </div>
     </div>
 
     <!-- 完工备注弹窗 -->
     <div v-if="showModal" class="modal-overlay" @click.self="showModal=false">
         <div class="modal-box">
             <h3>填写维修备注</h3>
-            <textarea v-model="remarkInput" placeholder="请输入维修处理方法和耗材（可选）..."></textarea>
+            <textarea v-model="remarkInput" placeholder="请输入维修处理方法和耗材（可选）..." style="height:100px"></textarea>
             <div class="modal-btns">
                 <button class="btn-cancel-modal" @click="showModal=false">取消</button>
                 <button class="btn-confirm" @click="confirmComplete">确认完工</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 修改密码弹窗 -->
+    <div v-if="showPwdModal" class="modal-overlay" @click.self="showPwdModal=false">
+        <div class="modal-box">
+            <h3>修改密码</h3>
+            <input v-model="pwdForm.oldPassword" type="password" placeholder="原密码" />
+            <input v-model="pwdForm.newPassword" type="password" placeholder="新密码" />
+            <div class="modal-btns">
+                <button class="btn-cancel-modal" @click="showPwdModal=false">取消</button>
+                <button class="btn-confirm" @click="changePassword">确认</button>
             </div>
         </div>
     </div>
@@ -81,55 +116,58 @@ const { createApp } = Vue
 createApp({
     data() {
         return {
-            list: [],
-            user: {},
-            showModal: false,
-            remarkInput: '',
-            completingOrderId: null
+            list: [], user: {},
+            currentPage: 1, totalPages: 1, totalItems: 0,
+            showModal: false, remarkInput: '', completingOrderId: null,
+            showPwdModal: false,
+            pwdForm: { oldPassword:'', newPassword:'' }
         }
     },
     mounted() {
         if (!api.getToken()) { api.goLogin(); return }
         this.loadUser()
-        this.loadList()
+        this.loadList(1)
     },
     methods: {
         async loadUser() {
             const res = await api.get('/auth/info')
             this.user = res.data.data
         },
-        async loadList() {
-            const res = await api.get('/order/all')
-            this.list = res.data.data || []
+        async loadList(page) {
+            this.currentPage = page
+            const res = await api.get(`/order/all?page=${page}&size=10`)
+            const d = res.data.data
+            this.list = d.records || []
+            this.totalPages = d.pages || 1
+            this.totalItems = d.total || 0
         },
         async accept(id) {
             await api.post(`/order/accept/${id}`)
             alert('接单成功！')
-            this.loadList()
+            this.loadList(this.currentPage)
         },
         showCompleteModal(orderId) {
-            this.completingOrderId = orderId
-            this.remarkInput = ''
-            this.showModal = true
+            this.completingOrderId = orderId; this.remarkInput = ''; this.showModal = true
         },
         async confirmComplete() {
             const params = this.remarkInput ? `?remark=${encodeURIComponent(this.remarkInput)}` : ''
             await api.post(`/order/complete/${this.completingOrderId}${params}`)
             this.showModal = false
             alert('完工成功！')
-            this.loadList()
+            this.loadList(this.currentPage)
         },
-        statusText(status) {
-            const map = { pending:'待处理', processing:'处理中', completed:'已完成' }
-            return map[status] || status
+        async changePassword() {
+            if (!this.pwdForm.oldPassword || !this.pwdForm.newPassword) { alert('请填写完整'); return }
+            const params = `oldPassword=${encodeURIComponent(this.pwdForm.oldPassword)}&newPassword=${encodeURIComponent(this.pwdForm.newPassword)}`
+            await api.loginPost('/auth/change-password', params)
+            alert('密码修改成功！')
+            this.showPwdModal = false
+            this.pwdForm = { oldPassword:'', newPassword:'' }
         },
-        statusClass(status) {
-            return 'tag-' + (status || '')
-        },
-        formatTime(t) {
-            if (!t) return ''
-            return t.replace('T',' ').substring(0,19)
-        },
+        statusText(s) { return {pending:'待处理',processing:'处理中',completed:'已完成'}[s]||s },
+        statusClass(s) { return 'tag-'+(s||'') },
+        formatTime(t) { return t ? t.replace('T',' ').substring(0,19) : '' },
+        roleText(r) { return {student:'学生',teacher:'师傅',admin:'管理员'}[r]||r },
         goBack() { api.goLogin() }
     }
 }).mount('#app')
