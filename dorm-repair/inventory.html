@@ -1,0 +1,346 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <title>耗材库存管理</title>
+    <script src="https://cdn.jsdelivr.net/npm/vue@3"></script>
+    <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+    <style>
+        *{margin:0;padding:0;box-sizing:border-box}
+        body{padding:20px;background:#f5f7fa;font-family:"Microsoft YaHei","PingFang SC",sans-serif}
+        .container{max-width:1200px;margin:0 auto}
+        .title{font-size:24px;margin-bottom:20px;color:#333;font-weight:600}
+        .btn-back{background:#909399;margin-bottom:16px;width:auto;padding:8px 20px;font-size:13px;color:white;border:none;border-radius:6px;cursor:pointer}
+        .top-bar{display:flex;justify-content:space-between;align-items:center;padding:12px 20px;background:white;border-radius:10px;margin-bottom:16px;box-shadow:0 2px 8px rgba(0,0,0,0.04)}
+        .top-bar .user-info{display:flex;align-items:center;gap:12px;font-size:14px;color:#333}
+        .top-bar .role-badge{display:inline-block;padding:3px 10px;border-radius:12px;font-size:12px;color:white}
+        .top-bar .role-student{background:#409eff}.top-bar .role-teacher{background:#e6a23c}.top-bar .role-admin{background:#67c23a}
+        .top-bar button{padding:6px 14px;border:none;border-radius:4px;cursor:pointer;font-size:12px;background:#f0f2f5;color:#666}
+        .top-bar button:hover{background:#e4e7ed}
+        .card{background:white;padding:24px;border-radius:12px;box-shadow:0 2px 12px rgba(0,0,0,0.04)}
+        .toolbar{display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;flex-wrap:wrap;gap:10px}
+        .toolbar .filter-group{display:flex;gap:8px;align-items:center}
+        .toolbar select,.toolbar input{padding:8px 12px;border:1px solid #ddd;border-radius:6px;outline:none;font-size:13px}
+        .btn{padding:8px 20px;color:white;border:none;border-radius:6px;cursor:pointer;font-size:13px;transition:opacity 0.2s}
+        .btn:hover{opacity:0.85}
+        .btn-primary{background:#409eff}
+        .btn-success{background:#67c23a}
+        .btn-warning{background:#e6a23c}
+        .btn-sm{padding:4px 12px;font-size:12px}
+        .btn-record{background:#909399;padding:4px 12px;font-size:12px;color:white;border:none;border-radius:4px;cursor:pointer;margin-left:4px}
+        .btn-record:hover{opacity:0.8}
+        table{width:100%;border-collapse:collapse}
+        th,td{padding:10px 12px;text-align:left;border-bottom:1px solid #eee;font-size:13px}
+        th{background:#f8f9fa;color:#666;font-weight:500}
+        tr.low-stock td{background:#fff0f0;color:#c0392b}
+        tr.low-stock:hover td{background:#ffe8e8}
+        .pagination{display:flex;gap:8px;justify-content:center;margin-top:16px;align-items:center}
+        .pagination button{padding:6px 14px;font-size:13px;border:1px solid #ddd;background:white;border-radius:4px;cursor:pointer;color:#333}
+        .pagination button:disabled{color:#ccc;cursor:not-allowed}
+        .pagination span{font-size:13px;color:#666}
+        .modal-overlay{position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.4);display:flex;justify-content:center;align-items:center;z-index:100}
+        .modal-box{background:white;padding:28px;border-radius:12px;width:440px;box-shadow:0 8px 32px rgba(0,0,0,0.15);max-height:80vh;overflow-y:auto}
+        .modal-box h3{margin-bottom:16px;font-size:18px;color:#333}
+        .modal-box input,.modal-box select{width:100%;padding:10px 12px;margin-bottom:12px;border:1px solid #ddd;border-radius:6px;outline:none;font-size:14px}
+        .modal-box input:focus,.modal-box select:focus{border-color:#409eff}
+        .modal-btns{display:flex;gap:10px;margin-top:16px;justify-content:flex-end}
+        .modal-btns button{padding:8px 20px}
+        .cat-tabs{display:flex;gap:4px}
+        .cat-tab{padding:6px 16px;border:1px solid #ddd;background:white;border-radius:20px;cursor:pointer;font-size:13px;color:#666;transition:all 0.2s}
+        .cat-tab.active{background:#409eff;color:#fff;border-color:#409eff}
+        .cat-tab:hover:not(.active){background:#f0f2f5}
+    </style>
+</head>
+<body>
+<div id="app" class="container">
+    <div class="top-bar">
+        <div class="user-info">
+            <span>欢迎，<strong>{{user.name || '--'}}</strong></span>
+            <span class="role-badge" :class="'role-'+user.role">{{roleText(user.role)}}</span>
+        </div>
+        <div style="display:flex;gap:8px">
+            <button @click="goBack">返回管理</button>
+        </div>
+    </div>
+    <div class="title">耗材库存管理</div>
+
+    <div class="card">
+        <div class="toolbar">
+            <div class="filter-group">
+                <div class="cat-tabs">
+                    <div class="cat-tab" :class="{active:filterCat===''}" @click="filterCat='';loadItems(1)">全部</div>
+                    <div class="cat-tab" :class="{active:filterCat==='电工'}" @click="filterCat='电工';loadItems(1)">电工</div>
+                    <div class="cat-tab" :class="{active:filterCat==='水工'}" @click="filterCat='水工';loadItems(1)">水工</div>
+                    <div class="cat-tab" :class="{active:filterCat==='木工'}" @click="filterCat='木工';loadItems(1)">木工</div>
+                    <div class="cat-tab" :class="{active:filterCat==='五金'}" @click="filterCat='五金';loadItems(1)">五金</div>
+                </div>
+            </div>
+            <button class="btn btn-primary" @click="openCreateModal">新增耗材</button>
+        </div>
+        <table>
+            <tr>
+                <th>名称</th>
+                <th>类别</th>
+                <th>库存数量</th>
+                <th>安全阈值</th>
+                <th>单位</th>
+                <th>最后更新</th>
+                <th>操作</th>
+            </tr>
+            <tr v-for="item in displayItems" :class="{'low-stock': item.quantity < item.safetyThreshold}">
+                <td>{{item.name}}</td>
+                <td>{{item.category}}</td>
+                <td>
+                    <span style="font-weight:600" :style="{color: item.quantity < item.safetyThreshold ? '#c0392b' : '#333'}">
+                        {{item.quantity}}
+                    </span>
+                    <span v-if="item.quantity < item.safetyThreshold" style="color:#e74c3c;margin-left:4px;font-size:12px">库存不足</span>
+                </td>
+                <td>{{item.safetyThreshold}}</td>
+                <td>{{item.unit || '-'}}</td>
+                <td>{{formatTime(item.updateTime)}}</td>
+                <td style="white-space:nowrap">
+                    <button class="btn btn-sm btn-primary" @click="openStockInModal(item)">入库</button>
+                    <button class="btn btn-sm btn-warning" @click="openStockOutModal(item)">出库</button>
+                    <button class="btn-record" @click="openRecordsModal(item)">记录</button>
+                    <button class="btn btn-sm" style="background:#909399" @click="openEditModal(item)">编辑</button>
+                </td>
+            </tr>
+            <tr v-if="displayItems.length===0">
+                <td colspan="7" style="text-align:center;color:#999;padding:40px">暂无耗材数据</td>
+            </tr>
+        </table>
+        <div class="pagination" v-if="totalPages > 1">
+            <button :disabled="currentPage<=1" @click="loadItems(currentPage-1)">上一页</button>
+            <span>第 {{currentPage}} / {{totalPages}} 页（共 {{totalItems}} 条）</span>
+            <button :disabled="currentPage>=totalPages" @click="loadItems(currentPage+1)">下一页</button>
+        </div>
+    </div>
+
+    <!-- 新增/编辑耗材弹窗 -->
+    <div v-if="showItemModal" class="modal-overlay" @click.self="showItemModal=false">
+        <div class="modal-box">
+            <h3>{{editingItem.id ? '编辑耗材' : '新增耗材'}}</h3>
+            <input v-model="editingItem.name" placeholder="名称" />
+            <select v-model="editingItem.category">
+                <option value="">选择类别</option>
+                <option value="电工">电工</option>
+                <option value="水工">水工</option>
+                <option value="木工">木工</option>
+                <option value="五金">五金</option>
+            </select>
+            <input v-model.number="editingItem.safetyThreshold" placeholder="安全阈值" type="number" />
+            <input v-model="editingItem.unit" placeholder="单位（个/米/卷）" />
+            <div class="modal-btns">
+                <button class="btn" style="background:#909399" @click="showItemModal=false">取消</button>
+                <button class="btn btn-primary" @click="saveItem">保存</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 入库弹窗 -->
+    <div v-if="showInModal" class="modal-overlay" @click.self="showInModal=false">
+        <div class="modal-box">
+            <h3>入库 - {{stockItem.name}}</h3>
+            <input v-model.number="stockForm.quantity" placeholder="入库数量" type="number" />
+            <input v-model="stockForm.remark" placeholder="备注（选填）" />
+            <div class="modal-btns">
+                <button class="btn" style="background:#909399" @click="showInModal=false">取消</button>
+                <button class="btn btn-primary" @click="doStockIn">确认入库</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 出库弹窗 -->
+    <div v-if="showOutModal" class="modal-overlay" @click.self="showOutModal=false">
+        <div class="modal-box">
+            <h3>出库 - {{stockItem.name}}</h3>
+            <input v-model.number="stockForm.quantity" placeholder="出库数量" type="number" />
+            <input v-model.number="stockForm.workOrderId" placeholder="关联工单ID（选填）" type="number" />
+            <input v-model="stockForm.remark" placeholder="备注（选填）" />
+            <div class="modal-btns">
+                <button class="btn" style="background:#909399" @click="showOutModal=false">取消</button>
+                <button class="btn btn-warning" @click="doStockOut">确认出库</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 出入库记录弹窗 -->
+    <div v-if="showRecordsModal" class="modal-overlay" @click.self="showRecordsModal=false">
+        <div class="modal-box" style="width:560px">
+            <h3>出入库记录 - {{recordItem.name}}</h3>
+            <table style="margin-bottom:12px">
+                <tr><th>时间</th><th>类型</th><th>数量</th><th>操作人</th><th>备注</th></tr>
+                <tr v-for="r in records">
+                    <td>{{formatTime(r.createTime)}}</td>
+                    <td><span :style="{color: r.type==='in' ? '#67c23a' : '#e6a23c', fontWeight:'600'}">{{r.type==='in' ? '入库' : '出库'}}</span></td>
+                    <td>{{r.quantity}}</td>
+                    <td>{{r.operatorId || '-'}}</td>
+                    <td>{{r.remark || '-'}}</td>
+                </tr>
+                <tr v-if="records.length===0">
+                    <td colspan="5" style="text-align:center;color:#999;padding:20px">暂无记录</td>
+                </tr>
+            </table>
+            <div class="pagination" v-if="recordPages > 1">
+                <button :disabled="recordPage<=1" @click="loadRecords(recordPage-1)">上一页</button>
+                <span>{{recordPage}} / {{recordPages}}</span>
+                <button :disabled="recordPage>=recordPages" @click="loadRecords(recordPage+1)">下一页</button>
+            </div>
+            <div class="modal-btns">
+                <button class="btn" style="background:#909399" @click="showRecordsModal=false">关闭</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script src="api.js"></script>
+<script>
+const { createApp } = Vue
+createApp({
+    data() {
+        return {
+            user: {},
+            items: [],
+            currentPage: 1, totalPages: 1, totalItems: 0,
+            filterCat: '',
+            // Item modal
+            showItemModal: false, editingItem: {},
+            // Stock in/out modal
+            showInModal: false, showOutModal: false,
+            stockItem: {},
+            stockForm: { quantity: null, workOrderId: null, remark: '' },
+            // Records modal
+            showRecordsModal: false, recordItem: {},
+            records: [], recordPage: 1, recordPages: 1
+        }
+    },
+    computed: {
+        displayItems() {
+            return this.items
+        }
+    },
+    mounted() {
+        if (!api.getToken()) { api.goLogin(); return }
+        this.loadUser()
+    },
+    methods: {
+        async loadUser() {
+            const res = await api.get('/auth/info')
+            this.user = res.data.data
+            // 仅管理员可访问
+            if (this.user.role !== 'admin') {
+                alert('仅管理员可访问')
+                location.href = 'index.html'
+                return
+            }
+            this.loadItems(1)
+        },
+        async loadItems(page) {
+            this.currentPage = page
+            const params = { page, size: 20 }
+            try {
+                const res = await api.get('/inventory/list', params)
+                const d = res.data.data
+                this.items = d.records || []
+                this.totalPages = d.pages || 1
+                this.totalItems = d.total || 0
+            } catch (e) {
+                console.error('加载耗材列表失败', e)
+                this.items = []
+            }
+        },
+        openCreateModal() {
+            this.editingItem = { name: '', category: '', safetyThreshold: 10, unit: '' }
+            this.showItemModal = true
+        },
+        openEditModal(item) {
+            this.editingItem = { ...item }
+            this.showItemModal = true
+        },
+        async saveItem() {
+            const it = this.editingItem
+            if (!it.name || !it.category) { alert('请填写名称和类别'); return }
+            try {
+                if (it.id) {
+                    await axios.put(API_BASE + '/inventory/' + it.id, it, { headers: api.headers() })
+                } else {
+                    await api.post('/inventory', it)
+                }
+                this.showItemModal = false
+                this.loadItems(this.currentPage)
+            } catch (e) {
+                alert('保存失败: ' + (e.response?.data?.message || e.message))
+            }
+        },
+        openStockInModal(item) {
+            this.stockItem = item
+            this.stockForm = { quantity: null, workOrderId: null, remark: '' }
+            this.showInModal = true
+        },
+        async doStockIn() {
+            if (!this.stockForm.quantity || this.stockForm.quantity <= 0) { alert('请输入有效的入库数量'); return }
+            try {
+                await axios.post(API_BASE + '/inventory/' + this.stockItem.id + '/in', null, {
+                    headers: api.headers(),
+                    params: { quantity: this.stockForm.quantity, remark: this.stockForm.remark }
+                })
+                this.showInModal = false
+                this.loadItems(this.currentPage)
+            } catch (e) {
+                alert('入库失败: ' + (e.response?.data?.message || e.message))
+            }
+        },
+        openStockOutModal(item) {
+            if (item.quantity <= 0) { alert('库存为空，无法出库'); return }
+            this.stockItem = item
+            this.stockForm = { quantity: null, workOrderId: null, remark: '' }
+            this.showOutModal = true
+        },
+        async doStockOut() {
+            if (!this.stockForm.quantity || this.stockForm.quantity <= 0) { alert('请输入有效的出库数量'); return }
+            const params = { quantity: this.stockForm.quantity, remark: this.stockForm.remark }
+            if (this.stockForm.workOrderId) params.workOrderId = this.stockForm.workOrderId
+            try {
+                await axios.post(API_BASE + '/inventory/' + this.stockItem.id + '/out', null, {
+                    headers: api.headers(),
+                    params
+                })
+                this.showOutModal = false
+                this.loadItems(this.currentPage)
+            } catch (e) {
+                alert('出库失败: ' + (e.response?.data?.message || e.message))
+            }
+        },
+        openRecordsModal(item) {
+            this.recordItem = item
+            this.records = []
+            this.recordPage = 1
+            this.recordPages = 1
+            this.showRecordsModal = true
+            this.loadRecords(1)
+        },
+        async loadRecords(page) {
+            this.recordPage = page
+            try {
+                const res = await api.get('/inventory/' + this.recordItem.id + '/records', { page, size: 10 })
+                const d = res.data.data
+                this.records = d.records || []
+                this.recordPages = d.pages || 1
+            } catch (e) {
+                console.error('加载记录失败', e)
+                this.records = []
+            }
+        },
+        roleText(r) {
+            return { student: '学生', teacher: '师傅', admin: '管理员' }[r] || r
+        },
+        formatTime(t) {
+            return t ? t.replace('T', ' ').substring(0, 19) : ''
+        },
+        goBack() { location.href = 'index.html' }
+    }
+}).mount('#app')
+</script>
+</body>
+</html>

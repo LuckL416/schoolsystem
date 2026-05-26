@@ -35,5 +35,23 @@ const api = {
         list(params) {
             return api.get('/announcement/page', params);
         }
+    },
+
+    inventory: {
+        list(params) {
+            return api.get('/inventory/list', params);
+        },
+        create(data) {
+            return api.post('/inventory', data);
+        },
+        update(id, data) {
+            return axios.put(API_BASE + '/inventory/' + id, data, { headers: api.headers() });
+        },
+        records(itemId, params) {
+            return api.get('/inventory/' + itemId + '/records', params);
+        },
+        lowStock() {
+            return api.get('/inventory/low-stock');
+        }
     }
 };
