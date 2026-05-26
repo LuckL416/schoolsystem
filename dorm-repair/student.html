@@ -8,12 +8,12 @@
     <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
     <style>
         *{margin:0;padding:0;box-sizing:border-box}
-        body{padding:0;background:#f0f4f8;font-family:"Microsoft YaHei","PingFang SC","Inter",sans-serif;min-height:100vh}
+        body{padding:0;padding-top:76px;background:#f0f4f8;font-family:"Microsoft YaHei","PingFang SC","Inter",sans-serif;min-height:100vh}
         .container{max-width:1400px;margin:0 auto;padding:0 12px 32px;display:grid;grid-template-columns:2.5fr 1fr;gap:20px;align-items:start}
         .main-col{min-width:0}
         .side-col{position:sticky;top:72px}
         @media (max-width:960px){.container{grid-template-columns:1fr}.side-col{position:static}}
-        .top-bar{display:flex;justify-content:space-between;align-items:center;padding:8px 20px;background:white;border-bottom:1px solid #e8ecf1;margin-bottom:0;position:sticky;top:0;z-index:50;box-shadow:0 1px 4px rgba(0,0,0,0.04)}
+        .top-bar{display:flex;justify-content:space-between;align-items:center;padding:8px 20px;background:white;border-bottom:1px solid #e8ecf1;margin-bottom:0;box-shadow:0 1px 4px rgba(0,0,0,0.04)}
         .top-bar .user-info{display:flex;align-items:center;gap:12px;font-size:14px;color:#333;flex-shrink:0}
         .top-bar .user-info strong{color:#1a1a2e}
         .top-bar .role-badge{display:inline-block;padding:3px 10px;border-radius:12px;font-size:12px;color:white;line-height:1.5}
@@ -111,18 +111,20 @@
         .tip-expand:hover{text-decoration:underline}
         .tip-detail{margin-top:8px;padding:10px 12px;background:#f8fafc;border-radius:6px;font-size:12px;color:#444;line-height:1.8}
         /* Announcement Bar */
-        .announce-bar{background:#fff;border-bottom:1px solid #e8ecf1;padding:0;overflow:hidden;position:sticky;top:56px;z-index:49;white-space:nowrap}
+        .announce-bar{background:#fff;border-bottom:1px solid #e8ecf1;padding:0;overflow:hidden;white-space:nowrap}
         .announce-bar-inner{display:inline-flex;animation:marquee 30s linear infinite;padding:8px 0}
         .announce-bar:hover .announce-bar-inner{animation-play-state:paused}
         .announce-item{display:inline-flex;align-items:center;gap:8px;padding:4px 32px;font-size:13px;color:#475569;border-right:1px solid #e8ecf1;white-space:nowrap;flex-shrink:0}
         .announce-item .ann-dot{width:6px;height:6px;border-radius:50%;flex-shrink:0}
         .ann-dot.notice{background:#ef4444}.ann-dot.general{background:#3b82f6}.ann-dot.tip{background:#10b981}
         @keyframes marquee{0%{transform:translateX(0)}100%{transform:translateX(-50%)}}
+        .fixed-header{position:fixed;top:0;left:0;right:0;z-index:100}
     </style>
 </head>
 <body>
 <div id="app" class="container">
-    <div class="top-bar" style="grid-column:1/-1">
+    <div class="fixed-header" style="grid-column:1/-1">
+        <div class="top-bar">
         <div class="user-info">
             <span>欢迎，<strong>{{user.name || '--'}}</strong></span>
             <span class="role-badge" :class="'role-'+user.role">{{roleText(user.role)}}</span>
@@ -150,6 +152,7 @@
             </span>
         </div>
     </div>
+    </div><!-- /fixed-header -->
 
     <div v-if="notification" class="notification">
         <span>{{notification}}</span>
