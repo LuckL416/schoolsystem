@@ -3,9 +3,14 @@ package com.school.dormrepair.service;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.school.dormrepair.common.BusinessException;
 import com.school.dormrepair.common.Result;
+import com.school.dormrepair.entity.FaultType;
+import com.school.dormrepair.entity.User;
 import com.school.dormrepair.entity.WorkOrder;
+import com.school.dormrepair.mapper.FaultTypeMapper;
+import com.school.dormrepair.mapper.UserMapper;
 import com.school.dormrepair.mapper.WorkOrderMapper;
 import org.springframework.stereotype.Service;
+import java.util.List;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 @Service
@@ -13,10 +18,15 @@ public class WorkOrderService {
 
     private final WorkOrderMapper workOrderMapper;
     private final NotificationService notificationService;
+    private final FaultTypeMapper faultTypeMapper;
+    private final UserMapper userMapper;
 
-    public WorkOrderService(WorkOrderMapper workOrderMapper, NotificationService notificationService) {
+    public WorkOrderService(WorkOrderMapper workOrderMapper, NotificationService notificationService,
+                            FaultTypeMapper faultTypeMapper, UserMapper userMapper) {
         this.workOrderMapper = workOrderMapper;
         this.notificationService = notificationService;
+        this.faultTypeMapper = faultTypeMapper;
+        this.userMapper = userMapper;
     }
 
     // 学生提交报修
@@ -36,6 +46,35 @@ public class WorkOrderService {
         }
         workOrder.setOrderNo(datePrefix + String.format("%03d", seq));
         workOrderMapper.insert(workOrder);
+
+        // Module 2: Check fault type urgency
+        FaultType ft = faultTypeMapper.selectById(workOrder.getFaultTypeId());
+        if (ft != null && ft.getUrgentLevel() != null && ft.getUrgentLevel() <= 2) {
+            workOrder.setIsUrgent(1);
+            workOrder.setUrgentLevel(ft.getUrgentLevel());
+            workOrderMapper.updateById(workOrder);
+
+            // Notify all teachers
+            List<User> teachers = userMapper.selectList(
+                new LambdaQueryWrapper<User>().eq(User::getRole, "teacher"));
+            for (User t : teachers) {
+                notificationService.send(t.getId(), "urgent",
+                    "紧急工单",
+                    "工单 " + workOrder.getOrderNo() + " (" + ft.getName() + ") 需要紧急处理",
+                    workOrder.getId());
+            }
+
+            // Notify all admins
+            List<User> admins = userMapper.selectList(
+                new LambdaQueryWrapper<User>().eq(User::getRole, "admin"));
+            for (User a : admins) {
+                notificationService.send(a.getId(), "urgent",
+                    "紧急工单提醒",
+                    "工单 " + workOrder.getOrderNo() + " (" + ft.getName() + ") 已提交，请关注",
+                    workOrder.getId());
+            }
+        }
+
         return Result.success("报修提交成功");
     }
 

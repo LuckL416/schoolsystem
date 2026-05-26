@@ -32,4 +32,8 @@ public class WorkOrder {
     private Integer evaluateQuality;
     private String evaluateComment;
     private LocalDateTime evaluateTime;
+
+    // Emergency (Module 2)
+    private Integer isUrgent;
+    private Integer urgentLevel;
 }
