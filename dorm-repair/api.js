@@ -41,7 +41,19 @@ const api = {
 
     announcement: {
         list(params) {
-            return api.get('/announcement/page', params);
+            return api.get('/announcement/list', params);
+        },
+        detail(id) {
+            return api.get('/announcement/' + id);
+        },
+        create(data) {
+            return api.post('/announcement', data);
+        },
+        update(id, data) {
+            return api.put('/announcement/' + id, data);
+        },
+        del(id) {
+            return api.delete('/announcement/' + id);
         }
     },
 
