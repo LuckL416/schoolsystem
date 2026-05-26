@@ -187,29 +187,6 @@
         <button @click="submit">提交报修</button>
     </div>
 
-    </div><!-- /main-col -->
-
-    <!-- 右侧：维修小贴士（直接展示） -->
-    <div class="side-col">
-    <div v-if="tips.length > 0" style="margin-bottom:20px">
-        <div style="font-size:16px;font-weight:700;color:#333;margin-bottom:12px;display:flex;align-items:center;gap:6px">
-            💡 自己动手试试
-        </div>
-        <div style="font-size:12px;color:#999;margin-bottom:12px">小问题自己解决，省时又方便</div>
-        <div v-for="(t, i) in tips" :key="t.id" class="tip-card"
-             :style="{ borderLeftColor: ['#3b82f6','#10b981','#f59e0b','#ef4444','#8b5cf6','#ec4899'][i%6] }">
-            <div class="tip-icon">{{ ['⚡','❄️','🚽','🚰','🔥','🪟'][i%6] }}</div>
-            <div class="tip-body">
-                <div class="tip-title">{{ t.title }}</div>
-                <div class="tip-desc" v-html="truncateText(t.content, 60)"></div>
-                <div class="tip-expand" @click="showTip = showTip === t.id ? null : t.id">
-                    {{ showTip === t.id ? '收起 ▲' : '查看步骤 ▼' }}
-                </div>
-                <div v-if="showTip === t.id" class="tip-detail" v-html="t.content"></div>
-            </div>
-        </div>
-    </div>
-
     <div class="card">
         <h3>📋 我的报修记录</h3>
         <!-- Loading -->
@@ -249,6 +226,28 @@
         </div>
     </div>
 
+    </div><!-- /main-col -->
+
+    <!-- 右侧：维修小贴士 -->
+    <div class="side-col">
+    <div v-if="tips.length > 0" style="margin-bottom:20px">
+        <div style="font-size:16px;font-weight:700;color:#333;margin-bottom:12px;display:flex;align-items:center;gap:6px">
+            💡 自己动手试试
+        </div>
+        <div style="font-size:12px;color:#999;margin-bottom:12px">小问题自己解决，省时又方便</div>
+        <div v-for="(t, i) in tips" :key="t.id" class="tip-card"
+             :style="{ borderLeftColor: ['#3b82f6','#10b981','#f59e0b','#ef4444','#8b5cf6','#ec4899'][i%6] }">
+            <div class="tip-icon">{{ ['⚡','❄️','🚽','🚰','🔥','🪟'][i%6] }}</div>
+            <div class="tip-body">
+                <div class="tip-title">{{ t.title }}</div>
+                <div class="tip-desc" v-html="truncateText(t.content, 60)"></div>
+                <div class="tip-expand" @click="showTip = showTip === t.id ? null : t.id">
+                    {{ showTip === t.id ? '收起 ▲' : '查看步骤 ▼' }}
+                </div>
+                <div v-if="showTip === t.id" class="tip-detail" v-html="t.content"></div>
+            </div>
+        </div>
+    </div>
     </div><!-- /side-col -->
 
     <!-- 修改密码弹窗 -->
