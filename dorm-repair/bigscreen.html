@@ -10,30 +10,30 @@
 <script src="api.js"></script>
 <style>
   * { margin: 0; padding: 0; box-sizing: border-box; }
-  body { background: #0f172a; color: #e2e8f0; font-family: 'Inter', sans-serif; overflow: hidden; }
-  .dashboard { display: grid; grid-template-rows: auto auto 1fr 1fr; height: 100vh; padding: 20px 30px; gap: 16px; }
-  .top-bar { display: flex; align-items: center; justify-content: space-between; }
-  .top-bar h1 { font-size: 32px; font-weight: 700; color: #f1f5f9; }
-  .alert-count { font-size: 28px; font-weight: 700; }
+  body { background: #0f172a; color: #e2e8f0; font-family: 'Inter', sans-serif; min-height: 100vh; }
+  .dashboard { display: flex; flex-direction: column; min-height: 100vh; padding: 16px 24px; gap: 14px; }
+  .top-bar { display: flex; align-items: center; justify-content: space-between; flex-shrink: 0; }
+  .top-bar h1 { font-size: 28px; font-weight: 700; color: #f1f5f9; }
+  .alert-count { font-size: 24px; font-weight: 700; }
   .alert-overdue { color: #f87171; }
   .alert-urgent { color: #fbbf24; }
-  .stat-cards { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; }
-  .stat-card { background: #1e293b; border-radius: 10px; padding: 20px 24px; border: 1px solid #334155; }
-  .stat-card .label { font-size: 14px; color: #94a3b8; margin-bottom: 8px; }
-  .stat-card .value { font-size: 36px; font-weight: 700; }
-  .value-blue { color: #60a5fa; }
-  .value-green { color: #4ade80; }
-  .value-amber { color: #fbbf24; }
-  .value-yellow { color: #facc15; }
-  .main-area { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
-  .panel { background: #1e293b; border-radius: 10px; padding: 16px; border: 1px solid #334155; }
-  .panel-title { font-size: 16px; font-weight: 600; color: #cbd5e1; margin-bottom: 12px; }
-  .heatmap { display: grid; grid-template-columns: repeat(auto-fill, minmax(55px, 1fr)); gap: 4px; }
-  .hm-cell { aspect-ratio: 1; border-radius: 4px; display: flex; align-items: center; justify-content: center; font-size: 10px; font-weight: 600; cursor: pointer; }
-  .bottom-area { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
-  .scroll-list { overflow-y: auto; max-height: 180px; }
-  .scroll-item { padding: 10px 12px; border-bottom: 1px solid #334155; font-size: 13px; display: flex; justify-content: space-between; gap: 12px; }
+  .stat-cards { display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; flex-shrink: 0; }
+  .stat-card { background: #1e293b; border-radius: 10px; padding: 16px 20px; border: 1px solid #334155; }
+  .stat-card .label { font-size: 13px; color: #94a3b8; margin-bottom: 6px; }
+  .stat-card .value { font-size: 32px; font-weight: 700; }
+  .value-blue { color: #60a5fa; } .value-green { color: #4ade80; } .value-amber { color: #fbbf24; } .value-yellow { color: #facc15; }
+  .main-area { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; flex: 1; min-height: 0; }
+  .panel { background: #1e293b; border-radius: 10px; padding: 14px; border: 1px solid #334155; display: flex; flex-direction: column; overflow: hidden; }
+  .panel-title { font-size: 15px; font-weight: 600; color: #cbd5e1; margin-bottom: 10px; flex-shrink: 0; }
+  .panel-body { flex: 1; min-height: 0; overflow: hidden; }
+  .heatmap { display: grid; grid-template-columns: repeat(auto-fill, minmax(50px, 1fr)); gap: 3px; overflow-y: auto; max-height: 100%; align-content: start; }
+  .hm-cell { aspect-ratio: 1; border-radius: 4px; display: flex; align-items: center; justify-content: center; font-size: 9px; font-weight: 600; cursor: pointer; }
+  .bottom-area { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; flex-shrink: 0; height: 180px; }
+  .scroll-list { overflow-y: auto; max-height: 130px; }
+  .scroll-item { padding: 8px 10px; border-bottom: 1px solid #334155; font-size: 12px; display: flex; justify-content: space-between; gap: 8px; }
   .scroll-item:last-child { border-bottom: none; }
+  .chart-wrap { position: relative; width: 100%; height: 100%; }
+  .chart-wrap canvas { max-height: 100%; }
 </style>
 </head>
 <body>
@@ -58,17 +58,19 @@
     <div class="main-area">
       <div class="panel">
         <div class="panel-title">楼栋报修热力图</div>
-        <div class="heatmap">
-          <div v-for="h in heatmapData" :key="h.label" class="hm-cell"
-               :style="{ background: heatColor(h.count) }"
-               :title="h.label + ': ' + h.count + '单'">{{ h.label }}</div>
+        <div class="panel-body">
+          <div class="heatmap">
+            <div v-for="h in heatmapData" :key="h.label" class="hm-cell"
+                 :style="{ background: heatColor(h.count) }"
+                 :title="h.label + ': ' + h.count + '单'">{{ h.label }}</div>
+          </div>
         </div>
       </div>
       <div class="panel">
         <div class="panel-title">故障类型分布 / 近7天趋势</div>
-        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;height:calc(100% - 40px)">
-          <canvas id="pieChart"></canvas>
-          <canvas id="trendChart"></canvas>
+        <div class="panel-body" style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+          <div class="chart-wrap"><canvas id="pieChart"></canvas></div>
+          <div class="chart-wrap"><canvas id="trendChart"></canvas></div>
         </div>
       </div>
     </div>
