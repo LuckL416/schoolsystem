@@ -8,7 +8,7 @@
     <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
     <style>
         *{margin:0;padding:0;box-sizing:border-box}
-        body{padding:0;padding-top:76px;background:#f0f4f8;font-family:"Microsoft YaHei","PingFang SC","Inter",sans-serif;min-height:100vh}
+        body{padding:0;background:#f0f4f8;font-family:"Microsoft YaHei","PingFang SC","Inter",sans-serif;min-height:100vh}
         .container{max-width:1400px;margin:0 auto;padding:0 12px 32px;display:grid;grid-template-columns:2.5fr 1fr;gap:20px;align-items:start}
         .main-col{min-width:0}
         .side-col{position:sticky;top:72px}
@@ -118,13 +118,22 @@
         .announce-item .ann-dot{width:6px;height:6px;border-radius:50%;flex-shrink:0}
         .ann-dot.notice{background:#ef4444}.ann-dot.general{background:#3b82f6}.ann-dot.tip{background:#10b981}
         @keyframes marquee{0%{transform:translateX(0)}100%{transform:translateX(-50%)}}
-        .fixed-header{position:fixed;top:0;left:0;right:0;z-index:100}
     </style>
 </head>
 <body>
 <div id="app" class="container">
-    <div class="fixed-header" style="grid-column:1/-1">
-        <div class="top-bar">
+    <!-- 公告滚动条（页面最上方） -->
+    <div class="announce-bar" v-if="pinnedAnnouncements.length > 0" style="grid-column:1/-1">
+        <div class="announce-bar-inner">
+            <span v-for="a in pinnedAnnouncements" :key="a.id" class="announce-item">
+                <span class="ann-dot" :class="a.category"></span><span style="font-weight:600">{{ a.title }}</span>
+            </span>
+            <span v-for="a in pinnedAnnouncements" :key="'d-'+a.id" class="announce-item">
+                <span class="ann-dot" :class="a.category"></span><span style="font-weight:600">{{ a.title }}</span>
+            </span>
+        </div>
+    </div>
+    <div class="top-bar" style="grid-column:1/-1">
         <div class="user-info">
             <span>欢迎，<strong>{{user.name || '--'}}</strong></span>
             <span class="role-badge" :class="'role-'+user.role">{{roleText(user.role)}}</span>
@@ -135,24 +144,6 @@
             <button @click="goBack">退出登录</button>
         </div>
     </div>
-
-    <!-- 公告滚动条 -->
-    <div class="announce-bar" v-if="pinnedAnnouncements.length > 0">
-        <div class="announce-bar-inner">
-            <span v-for="a in pinnedAnnouncements" :key="a.id" class="announce-item">
-                <span class="ann-dot" :class="a.category"></span>
-                <span style="font-weight:600">{{ a.title }}</span>
-                <span style="color:#94a3b8;font-size:11px" v-html="truncateText(a.content, 40)"></span>
-            </span>
-            <!-- Duplicate for seamless loop -->
-            <span v-for="a in pinnedAnnouncements" :key="'d-'+a.id" class="announce-item">
-                <span class="ann-dot" :class="a.category"></span>
-                <span style="font-weight:600">{{ a.title }}</span>
-                <span style="color:#94a3b8;font-size:11px" v-html="truncateText(a.content, 40)"></span>
-            </span>
-        </div>
-    </div>
-    </div><!-- /fixed-header -->
 
     <div v-if="notification" class="notification">
         <span>{{notification}}</span>
