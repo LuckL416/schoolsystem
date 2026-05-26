@@ -13,4 +13,7 @@ public class FaultType {
     private String name;
     private String workType;
     private Integer urgentLevel;
+
+    // Overdue timeout (Module 4)
+    private Integer timeoutHours;
 }

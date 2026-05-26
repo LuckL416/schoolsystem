@@ -36,4 +36,8 @@ public class WorkOrder {
     // Emergency (Module 2)
     private Integer isUrgent;
     private Integer urgentLevel;
+
+    // Dispatch & Bidding (Module 3)
+    private Long assignedTeacherId;
+    private LocalDateTime assignTime;
 }

@@ -11,6 +11,7 @@ import com.school.dormrepair.mapper.UserMapper;
 import com.school.dormrepair.mapper.WorkOrderMapper;
 import org.springframework.stereotype.Service;
 import java.util.List;
+import java.util.Random;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 @Service
@@ -73,6 +74,9 @@ public class WorkOrderService {
                     "工单 " + workOrder.getOrderNo() + " (" + ft.getName() + ") 已提交，请关注",
                     workOrder.getId());
             }
+
+            // Module 3: Auto-assign urgent order to a random teacher
+            autoAssign(workOrder);
         }
 
         return Result.success("报修提交成功");
@@ -209,5 +213,68 @@ public class WorkOrderService {
         order.setEvaluateStar(star);
         workOrderMapper.updateById(order);
         return Result.success("评价成功");
+    }
+
+    // ========== Module 3: Dispatch & Bidding ==========
+
+    /** Auto-assign urgent order to a random teacher */
+    private void autoAssign(WorkOrder order) {
+        LambdaQueryWrapper<User> qw = new LambdaQueryWrapper<>();
+        qw.eq(User::getRole, "teacher");
+        List<User> teachers = userMapper.selectList(qw);
+        if (teachers.isEmpty()) return;
+
+        User assigned = teachers.get(new Random().nextInt(teachers.size()));
+        WorkOrder update = new WorkOrder();
+        update.setId(order.getId());
+        update.setAssignedTeacherId(assigned.getId());
+        update.setAssignTime(LocalDateTime.now());
+        workOrderMapper.updateById(update);
+
+        notificationService.send(assigned.getId(), "assign",
+            "新工单分配",
+            "工单 " + order.getOrderNo() + " 已分配给您，请及时处理",
+            order.getId());
+    }
+
+    /** Teacher claims an unassigned order from the pool */
+    public void claim(Long orderId, Long teacherId) {
+        WorkOrder order = workOrderMapper.selectById(orderId);
+        if (order == null) throw new BusinessException("工单不存在");
+        if (!"pending".equals(order.getStatus())) throw new BusinessException("工单不可抢");
+        if (order.getAssignedTeacherId() != null) throw new BusinessException("该工单已被分配");
+
+        WorkOrder update = new WorkOrder();
+        update.setId(orderId);
+        update.setAssignedTeacherId(teacherId);
+        update.setAssignTime(LocalDateTime.now());
+        workOrderMapper.updateById(update);
+    }
+
+    /** Admin manually assigns order to a specific teacher */
+    public void assign(Long orderId, Long teacherId) {
+        WorkOrder order = workOrderMapper.selectById(orderId);
+        if (order == null) throw new BusinessException("工单不存在");
+
+        WorkOrder update = new WorkOrder();
+        update.setId(orderId);
+        update.setAssignedTeacherId(teacherId);
+        update.setAssignTime(LocalDateTime.now());
+        workOrderMapper.updateById(update);
+
+        notificationService.send(teacherId, "assign",
+            "工单分配",
+            "管理员已将工单 " + order.getOrderNo() + " 分配给您",
+            orderId);
+    }
+
+    /** Get unclaimed orders pool (non-urgent, unassigned pending) */
+    public List<WorkOrder> pool() {
+        LambdaQueryWrapper<WorkOrder> qw = new LambdaQueryWrapper<>();
+        qw.eq(WorkOrder::getStatus, "pending")
+          .isNull(WorkOrder::getAssignedTeacherId)
+          .ne(WorkOrder::getIsUrgent, 1)
+          .orderByDesc(WorkOrder::getSubmitTime);
+        return workOrderMapper.selectList(qw);
     }
 }
