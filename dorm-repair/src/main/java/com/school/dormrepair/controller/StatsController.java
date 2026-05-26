@@ -1,10 +1,15 @@
 package com.school.dormrepair.controller;
 
 import com.school.dormrepair.common.Result;
+import com.school.dormrepair.entity.Dorm;
+import com.school.dormrepair.entity.User;
 import com.school.dormrepair.entity.WorkOrder;
 import com.school.dormrepair.entity.WorkOrderExcelVO;
+import com.school.dormrepair.mapper.DormMapper;
+import com.school.dormrepair.mapper.UserMapper;
 import com.school.dormrepair.mapper.WorkOrderMapper;
 import com.alibaba.excel.EasyExcel;
+import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -12,10 +17,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import jakarta.servlet.http.HttpServletResponse;
-import java.util.LinkedHashMap;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.stream.Collectors;
 
 // 鉴权由 JwtInterceptor 统一处理
@@ -26,44 +28,76 @@ public class StatsController {
     @Autowired
     private WorkOrderMapper workOrderMapper;
 
-    // 统计：总数、待处理、处理中、已完成
+    @Autowired
+    private UserMapper userMapper;
+
+    @Autowired
+    private DormMapper dormMapper;
+
+    // 统计：总数、待处理、处理中、已完成、完成率、平均评分
     @GetMapping("/dashboard")
-    public Result<Map<String, Long>> dashboard() {
+    public Result<Map<String, Object>> dashboard() {
         List<WorkOrder> all = workOrderMapper.selectList(null);
         long total = all.size();
         long pending = all.stream().filter(o -> "pending".equals(o.getStatus())).count();
         long processing = all.stream().filter(o -> "processing".equals(o.getStatus())).count();
         long completed = all.stream().filter(o -> "completed".equals(o.getStatus())).count();
 
-        Map<String, Long> map = new HashMap<>();
+        Map<String, Object> map = new HashMap<>();
         map.put("total", total);
         map.put("pending", pending);
         map.put("processing", processing);
         map.put("completed", completed);
 
+        // 完成率：(completed + accepted) / total
+        long acceptedCount = all.stream().filter(o -> "accepted".equals(o.getStatus())).count();
+        long completedTotal = completed + acceptedCount;
+        String completionRate = total > 0
+            ? String.format("%.1f", completedTotal * 100.0 / total) : "0.0";
+        map.put("completionRate", completionRate);
+
+        // 平均评分：三维度取平均
+        LambdaQueryWrapper<WorkOrder> ratedQw = new LambdaQueryWrapper<>();
+        ratedQw.isNotNull(WorkOrder::getEvaluateAttitude);
+        List<WorkOrder> rated = workOrderMapper.selectList(ratedQw);
+        String avgRating = "0.0";
+        if (!rated.isEmpty()) {
+            double avg = rated.stream()
+                .mapToDouble(o -> (o.getEvaluateAttitude() + o.getEvaluateSpeed() + o.getEvaluateQuality()) / 3.0)
+                .average().orElse(0);
+            avgRating = String.format("%.1f", avg);
+        }
+        map.put("avgRating", avgRating);
+
         return Result.success(map);
     }
 
-    // 近N天工单趋势
+    // 近N天工单趋势（返回列表格式，供 index.html 和 bigscreen.html 共用）
     @GetMapping("/trend")
-    public Result<Map<String, Long>> trend(@RequestParam(defaultValue = "7") Integer days) {
+    public Result<List<Map<String, Object>>> trend(@RequestParam(defaultValue = "7") Integer days) {
         List<WorkOrder> all = workOrderMapper.selectList(null);
-        Map<String, Long> map = new LinkedHashMap<>();
+        Map<String, Long> dayCount = new LinkedHashMap<>();
         java.time.LocalDate today = java.time.LocalDate.now();
         for (int i = days - 1; i >= 0; i--) {
-            String key = today.minusDays(i).toString();
-            map.put(key, 0L);
+            dayCount.put(today.minusDays(i).toString(), 0L);
         }
         java.time.format.DateTimeFormatter fmt = java.time.format.DateTimeFormatter.ofPattern("yyyy-MM-dd");
         for (WorkOrder o : all) {
             if (o.getSubmitTime() != null) {
                 String key = o.getSubmitTime().format(fmt);
-                if (map.containsKey(key)) {
-                    map.put(key, map.get(key) + 1);
+                if (dayCount.containsKey(key)) {
+                    dayCount.put(key, dayCount.get(key) + 1);
                 }
             }
         }
-        return Result.success(map);
+        List<Map<String, Object>> result = new ArrayList<>();
+        for (Map.Entry<String, Long> e : dayCount.entrySet()) {
+            Map<String, Object> item = new HashMap<>();
+            item.put("date", e.getKey());
+            item.put("count", e.getValue());
+            result.add(item);
+        }
+        return Result.success(result);
     }
 
     // 按宿舍统计
@@ -88,6 +122,63 @@ public class StatsController {
             map.put(key, map.getOrDefault(key, 0L) + 1);
         }
         return Result.success(map);
+    }
+
+    // 楼栋房间热力图数据
+    @GetMapping("/heatmap")
+    public Result<List<Map<String, Object>>> heatmap() {
+        List<Dorm> dorms = dormMapper.selectList(null);
+        List<Map<String, Object>> result = new ArrayList<>();
+        for (Dorm d : dorms) {
+            LambdaQueryWrapper<WorkOrder> qw = new LambdaQueryWrapper<>();
+            qw.eq(WorkOrder::getDormId, d.getId());
+            Map<String, Object> item = new HashMap<>();
+            item.put("building", d.getBuilding());
+            item.put("room", d.getRoom());
+            item.put("label", d.getBuilding() + "-" + d.getRoom());
+            item.put("count", workOrderMapper.selectCount(qw));
+            result.add(item);
+        }
+        return Result.success(result);
+    }
+
+    // 维修师傅评分排行
+    @GetMapping("/teacher-ranking")
+    public Result<List<Map<String, Object>>> teacherRanking() {
+        LambdaQueryWrapper<WorkOrder> qw = new LambdaQueryWrapper<>();
+        qw.isNotNull(WorkOrder::getEvaluateAttitude)
+          .isNotNull(WorkOrder::getTeacherId);
+        List<WorkOrder> orders = workOrderMapper.selectList(qw);
+
+        // Group by teacherId
+        Map<Long, List<WorkOrder>> group = orders.stream()
+            .collect(Collectors.groupingBy(WorkOrder::getTeacherId));
+
+        List<Map<String, Object>> ranking = new ArrayList<>();
+        for (Map.Entry<Long, List<WorkOrder>> entry : group.entrySet()) {
+            double avg = entry.getValue().stream()
+                .mapToDouble(o -> (o.getEvaluateAttitude() + o.getEvaluateSpeed() + o.getEvaluateQuality()) / 3.0)
+                .average().orElse(0);
+            User t = userMapper.selectById(entry.getKey());
+            Map<String, Object> item = new HashMap<>();
+            item.put("teacherId", entry.getKey());
+            item.put("teacherName", t != null ? t.getName() : "未知");
+            item.put("avgRating", String.format("%.1f", avg));
+            item.put("orderCount", entry.getValue().size());
+            ranking.add(item);
+        }
+        ranking.sort((a, b) -> Double.compare(
+            Double.parseDouble((String) b.get("avgRating")),
+            Double.parseDouble((String) a.get("avgRating"))));
+        return Result.success(ranking);
+    }
+
+    // 最近10条工单动态
+    @GetMapping("/recent-orders")
+    public Result<List<WorkOrder>> recentOrders() {
+        LambdaQueryWrapper<WorkOrder> qw = new LambdaQueryWrapper<>();
+        qw.orderByDesc(WorkOrder::getSubmitTime).last("LIMIT 10");
+        return Result.success(workOrderMapper.selectList(qw));
     }
 
     // Excel 导出所有工单（中文表头）

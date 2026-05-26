@@ -57,6 +57,7 @@
             <span class="role-badge" :class="'role-'+user.role">{{roleText(user.role)}}</span>
         </div>
         <div style="display:flex;gap:8px">
+            <a href="bigscreen.html" target="_blank" style="padding:6px 14px;border:none;border-radius:4px;cursor:pointer;font-size:12px;background:#f0f2f5;color:#666;text-decoration:none;display:inline-block">大屏看板</a>
             <button @click="goAdmin">系统管理</button>
             <button @click="showPwdModal=true">修改密码</button>
             <button @click="goBack">退出登录</button>
@@ -187,8 +188,8 @@ createApp({
         },
         async loadTrend() {
             const res = await api.get('/stats/trend?days=7')
-            const data = res.data.data
-            const labels = Object.keys(data), values = Object.values(data)
+            const raw = res.data.data || []
+            const labels = raw.map(d => d.date), values = raw.map(d => d.count)
             const ctx = document.getElementById('trendChart')
             if (this.trendChart) this.trendChart.destroy()
             this.trendChart = new Chart(ctx, {
