@@ -2,10 +2,12 @@ package com.school.dormrepair.controller;
 
 import com.school.dormrepair.common.Result;
 import com.school.dormrepair.entity.Dorm;
+import com.school.dormrepair.entity.FaultType;
 import com.school.dormrepair.entity.User;
 import com.school.dormrepair.entity.WorkOrder;
 import com.school.dormrepair.entity.WorkOrderExcelVO;
 import com.school.dormrepair.mapper.DormMapper;
+import com.school.dormrepair.mapper.FaultTypeMapper;
 import com.school.dormrepair.mapper.UserMapper;
 import com.school.dormrepair.mapper.WorkOrderMapper;
 import com.alibaba.excel.EasyExcel;
@@ -30,6 +32,9 @@ public class StatsController {
 
     @Autowired
     private UserMapper userMapper;
+
+    @Autowired
+    private FaultTypeMapper faultTypeMapper;
 
     @Autowired
     private DormMapper dormMapper;
@@ -112,14 +117,20 @@ public class StatsController {
         return Result.success(map);
     }
 
-    // 按故障类型统计
+    // 按故障类型统计（使用故障类型名称）
     @GetMapping("/by-type")
     public Result<Map<String, Long>> byType() {
         List<WorkOrder> all = workOrderMapper.selectList(null);
-        Map<String, Long> map = new HashMap<>();
+        Map<String, Long> map = new LinkedHashMap<>();
+        // Build name lookup
+        Map<Long, String> nameMap = new HashMap<>();
+        List<FaultType> types = faultTypeMapper.selectList(null);
+        for (FaultType ft : types) {
+            nameMap.put(ft.getId(), ft.getName());
+        }
         for (WorkOrder o : all) {
-            String key = "类型" + o.getFaultTypeId();
-            map.put(key, map.getOrDefault(key, 0L) + 1);
+            String name = nameMap.getOrDefault(o.getFaultTypeId(), "未知类型");
+            map.put(name, map.getOrDefault(name, 0L) + 1);
         }
         return Result.success(map);
     }

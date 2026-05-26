@@ -1,0 +1,38 @@
+### 1. 管理员登录
+POST http://localhost:8080/api/auth/login
+Content-Type: application/x-www-form-urlencoded
+
+username=admin&password=123456
+
+### 2. 获取用户信息（需要先登录拿到token）
+GET http://localhost:8080/api/auth/info
+Authorization: Bearer eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiIxIiwicm9sZSI6ImFkbWluIiwiaWF0IjoxNzc4NTU2NzA1LCJleHAiOjE3NzkxNjE1MDV9.wii1npmf1UKSAE-4Vc7zQ0kkyv2NirnpBlDL3RYvUak
+
+### 3. 提交报修（把token换成你自己的）
+POST http://localhost:8080/api/order/submit
+Content-Type: application/json
+Authorization: Bearer eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiIxIiwicm9sZSI6ImFkbWluIiwiaWF0IjoxNzc4NTU2NzA1LCJleHAiOjE3NzkxNjE1MDV9.wii1npmf1UKSAE-4Vc7zQ0kkyv2NirnpBlDL3RYvUak
+
+{
+  "dormId": 1,
+  "faultTypeId": 1,
+  "description": "水龙头坏了，一直漏水",
+  "imageUrls": "/upload/1.jpg"
+}
+
+### 4. 查看我的报修
+GET http://localhost:8080/api/order/my
+Authorization: Bearer eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiIxIiwicm9sZSI6ImFkbWluIiwiaWF0IjoxNzc4NTU2NzA1LCJleHAiOjE3NzkxNjE1MDV9.wii1npmf1UKSAE-4Vc7zQ0kkyv2NirnpBlDL3RYvUak
+
+### 5. 管理员查看全部工单
+GET http://localhost:8080/api/order/all
+
+### 6. 师傅接单
+POST http://localhost:8080/api/order/accept/1
+Authorization: Bearer eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiIxIiwicm9sZSI6ImFkbWluIiwiaWF0IjoxNzc4NTU2NzA1LCJleHAiOjE3NzkxNjE1MDV9.wii1npmf1UKSAE-4Vc7zQ0kkyv2NirnpBlDL3RYvUak
+
+### 7. 师傅完工
+POST http://localhost:8080/api/order/complete/1
+
+### 8. 学生评价
+POST http://localhost:8080/api/order/evaluate/1?star=5

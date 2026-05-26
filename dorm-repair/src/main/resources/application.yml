@@ -1,0 +1,45 @@
+spring:
+  # 数据库配置
+  datasource:
+    url: jdbc:mysql://localhost:3306/dorm_repair_system?useUnicode=true&characterEncoding=UTF-8&serverTimezone=Asia/Shanghai
+    username: root
+    password: Luoliang12 # 改成你自己的MySQL root密码
+    driver-class-name: com.mysql.cj.jdbc.Driver
+  # 文件上传配置（图片）
+  servlet:
+    multipart:
+      max-file-size: 10MB
+      max-request-size: 10MB
+# 服务器配置
+server:
+  port: 8080
+  tomcat:
+    threads:
+      max: 500
+      min-spare: 100
+    accept-count: 200
+    connection-timeout: 20000
+  servlet:
+    context-path: /api
+# MyBatis-Plus 配置
+mybatis-plus:
+  mapper-locations: classpath:mapper/*.xml
+  type-aliases-package: com.school.dormrepair.entity
+  configuration:
+    map-underscore-to-camel-case: true
+    log-impl: org.apache.ibatis.logging.stdout.StdOutImpl # 开发时打印SQL语句
+# 自定义配置
+app:
+  # 图片存储路径（本地）
+  upload-path: F:/学习/schoolsystem/dorm-repair/images/
+  # JWT 密钥（32位以上随机字符串）
+  jwt-secret: abcdefghijklmnopqrstuvwxyz1234567890
+  # JWT 过期时间（7天，单位毫秒）
+  jwt-expire: 604800000
+# 接口文档配置
+springdoc:
+  swagger-ui:
+    path: /swagger-ui.html
+  api-docs:
+    path: /v3/api-docs
+  packages-to-scan: com.school.dormrepair.controller # 指定扫描Controller的包路径

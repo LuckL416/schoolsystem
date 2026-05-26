@@ -41,9 +41,11 @@
         .upload-row{display:flex;gap:10px;align-items:center;margin-bottom:10px}
         .upload-row input[type=file]{width:auto;flex:1}
         .upload-row button{width:auto;padding:8px 16px;font-size:13px;background:#67c23a}
-        table{width:100%;background:white;border-radius:8px;overflow:hidden;border-collapse:collapse}
-        th,td{padding:12px;text-align:left;border-bottom:1px solid #eee;font-size:14px}
-        th{background:#f8f9fa;color:#666;font-weight:500}
+        table{width:100%;background:white;border-radius:8px;overflow:hidden;border-collapse:collapse;font-size:13px}
+        th,td{padding:8px 10px;text-align:left;border-bottom:1px solid #eee;font-size:12px}
+        th{background:#f8f9fa;color:#666;font-weight:600;white-space:nowrap}
+        td{color:#444;max-width:120px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+        td.act-cell{white-space:nowrap;max-width:none}
         .tag{display:inline-block;padding:3px 10px;border-radius:12px;font-size:12px;font-weight:500}
         .tag-pending{background:#fdf6ec;color:#e6a23c}
         .tag-processing{background:#ecf5ff;color:#409eff}
@@ -207,17 +209,17 @@
             <div style="font-size:12px;color:#bbb;margin-top:4px">提交你的第一条报修吧</div>
         </div>
         <!-- Table -->
-        <div v-if="!loading && list.length > 0" class="table-wrap">
+        <div v-if="!loading && list.length > 0" style="overflow-x:auto">
         <table>
             <tr><th>编号</th><th>宿舍</th><th>故障类型</th><th>描述</th><th>状态</th><th>提交时间</th><th>操作</th></tr>
             <tr v-for="item in list">
-                <td>{{item.orderNo || item.id}}</td>
+                <td style="font-family:monospace;font-size:11px">{{item.orderNo || item.id}}</td>
                 <td>{{getDormName(item.dormId)}}</td>
                 <td>{{getFaultTypeName(item.faultTypeId)}}</td>
-                <td>{{item.description}}</td>
+                <td :title="item.description" style="max-width:140px">{{item.description}}</td>
                 <td><span class="tag" :class="statusClass(item.status)">{{statusText(item.status)}}</span></td>
-                <td>{{formatTime(item.submitTime)}}</td>
-                <td>
+                <td style="font-size:11px">{{formatTime(item.submitTime)}}</td>
+                <td class="act-cell">
                     <button v-if="item.status==='pending'" class="btn-cancel" @click="cancelOrder(item.id)">取消</button>
                     <button v-if="item.status==='pending_acceptance'" class="btn-evaluate" @click="confirmAcceptance(item)">确认验收</button>
                     <button v-if="item.status==='accepted' && !item.evaluateAttitude" class="btn-evaluate" @click="openEvaluate(item)">评价打分</button>
