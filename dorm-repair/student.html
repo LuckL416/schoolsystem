@@ -111,8 +111,8 @@
         .tip-expand:hover{text-decoration:underline}
         .tip-detail{margin-top:8px;padding:10px 12px;background:#f8fafc;border-radius:6px;font-size:12px;color:#444;line-height:1.8}
         /* Announcement Bar */
-        .announce-bar{background:#fff;border-bottom:1px solid #e8ecf1;padding:0;overflow:hidden;white-space:nowrap}
-        .announce-bar-inner{display:inline-flex;animation:marquee 30s linear infinite;padding:8px 0}
+        .announce-bar{background:#fff;border-bottom:1px solid #e8ecf1;overflow:hidden;white-space:nowrap}
+        .announce-bar-inner{display:inline-flex;animation:marquee 30s linear infinite;padding:10px 0}
         .announce-bar:hover .announce-bar-inner{animation-play-state:paused}
         .announce-item{display:inline-flex;align-items:center;gap:8px;padding:4px 32px;font-size:13px;color:#475569;border-right:1px solid #e8ecf1;white-space:nowrap;flex-shrink:0}
         .announce-item .ann-dot{width:6px;height:6px;border-radius:50%;flex-shrink:0}
@@ -122,17 +122,6 @@
 </head>
 <body>
 <div id="app" class="container">
-    <!-- 公告滚动条（页面最上方） -->
-    <div class="announce-bar" v-if="pinnedAnnouncements.length > 0" style="grid-column:1/-1">
-        <div class="announce-bar-inner">
-            <span v-for="a in pinnedAnnouncements" :key="a.id" class="announce-item">
-                <span class="ann-dot" :class="a.category"></span><span style="font-weight:600">{{ a.title }}</span>
-            </span>
-            <span v-for="a in pinnedAnnouncements" :key="'d-'+a.id" class="announce-item">
-                <span class="ann-dot" :class="a.category"></span><span style="font-weight:600">{{ a.title }}</span>
-            </span>
-        </div>
-    </div>
     <div class="top-bar" style="grid-column:1/-1">
         <div class="user-info">
             <span>欢迎，<strong>{{user.name || '--'}}</strong></span>
@@ -155,6 +144,22 @@
         <div v-for="(t,i) in toasts" :key="i" class="toast-wrp" :class="t.type">
             <span class="toast-icon">{{ t.type==='success'?'✓':t.type==='error'?'✗':'ℹ' }}</span>
             <span>{{t.msg}}</span>
+        </div>
+    </div>
+
+    <!-- 公告滚动条 -->
+    <div class="announce-bar" v-if="pinnedAnnouncements.length > 0" style="grid-column:1/-1;margin-bottom:0">
+        <div class="announce-bar-inner">
+            <span v-for="a in pinnedAnnouncements" :key="a.id" class="announce-item" style="gap:12px;padding:6px 40px">
+                <span class="ann-dot" :class="a.category"></span>
+                <span style="font-weight:600;font-size:14px">{{ a.title }}</span>
+                <span style="color:#64748b;font-size:12px" v-html="truncateText(a.content, 80)"></span>
+            </span>
+            <span v-for="a in pinnedAnnouncements" :key="'d-'+a.id" class="announce-item" style="gap:12px;padding:6px 40px">
+                <span class="ann-dot" :class="a.category"></span>
+                <span style="font-weight:600;font-size:14px">{{ a.title }}</span>
+                <span style="color:#64748b;font-size:12px" v-html="truncateText(a.content, 80)"></span>
+            </span>
         </div>
     </div>
 
