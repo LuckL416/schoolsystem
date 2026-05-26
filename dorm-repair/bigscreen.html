@@ -65,8 +65,11 @@
         </div>
       </div>
       <div class="panel">
-        <div class="panel-title">故障类型统计 / 近7天趋势</div>
-        <canvas id="trendChart" height="170"></canvas>
+        <div class="panel-title">故障类型分布 / 近7天趋势</div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;height:calc(100% - 40px)">
+          <canvas id="pieChart"></canvas>
+          <canvas id="trendChart"></canvas>
+        </div>
       </div>
     </div>
 
@@ -103,7 +106,7 @@ createApp({
     return {
       now: '', overdueCount: 0, urgentCount: 0,
       stats: { total: 0, completionRate: '0.0', processing: 0, avgRating: '0.0' },
-      heatmapData: [], overdueList: [], recentOrders: [], trendChart: null
+      heatmapData: [], overdueList: [], recentOrders: [], trendChart: null, pieChart: null
     };
   },
   mounted() {
@@ -115,12 +118,13 @@ createApp({
   methods: {
     async refresh() {
       try {
-        const [dash, heat, over, recent, urgent] = await Promise.all([
+        const [dash, heat, over, recent, urgent, byType] = await Promise.all([
           api.get('/stats/dashboard'),
           api.get('/stats/heatmap'),
           api.get('/order/overdue'),
           api.get('/stats/recent-orders'),
           api.get('/order/urgent'),
+          api.get('/stats/by-type'),
         ]);
         this.stats = dash.data.data;
         this.heatmapData = heat.data.data || [];
@@ -128,8 +132,37 @@ createApp({
         this.overdueCount = this.overdueList.length;
         this.recentOrders = recent.data.data || [];
         this.urgentCount = (urgent.data.data || []).length;
+        this.drawPie(byType.data.data || {});
         this.drawTrend();
       } catch(e) { console.error(e); }
+    },
+    drawPie(data) {
+      const ctx = document.getElementById('pieChart');
+      if (!ctx) return;
+      if (this.pieChart) this.pieChart.destroy();
+      const entries = Object.entries(data || {});
+      const colors = ['#3b82f6','#4ade80','#facc15','#f87171','#a78bfa','#fb923c','#38bdf8','#f472b6'];
+      this.pieChart = new Chart(ctx, {
+        type: 'doughnut',
+        data: {
+          labels: entries.map(e => e[0]),
+          datasets: [{
+            data: entries.map(e => e[1]),
+            backgroundColor: entries.map((_, i) => colors[i % colors.length]),
+            borderColor: '#1e293b',
+            borderWidth: 2
+          }]
+        },
+        options: {
+          responsive: true, maintainAspectRatio: false,
+          plugins: {
+            legend: {
+              position: 'bottom',
+              labels: { color: '#94a3b8', padding: 12, font: { size: 11 } }
+            }
+          }
+        }
+      });
     },
     heatColor(count) {
       if (!count || count === 0) return '#334155';
