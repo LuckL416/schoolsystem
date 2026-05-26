@@ -12,7 +12,7 @@
   .announcement-card {
     background: var(--canvas); border: 1px solid var(--border);
     border-radius: var(--rounded-lg); padding: var(--spacing-xl);
-    margin-bottom: var(--spacing-md); cursor: pointer;
+    margin-bottom: var(--spacing-md);
     transition: border-color 150ms, box-shadow 150ms;
   }
   .announcement-card:hover { border-color: var(--primary); box-shadow: var(--shadow-card); }
@@ -24,6 +24,7 @@
   .category-notice { background: #fef3c7; color: #d97706; }
   .category-tip { background: #dbeafe; color: #2563eb; }
   .category-general { background: #f1f5f9; color: #475569; }
+  .clickable { cursor: pointer; }
 </style>
 </head>
 <body>
@@ -33,6 +34,7 @@
       <div class="top-nav-title">宿舍公告</div>
     </div>
     <div class="top-nav-right">
+      <button v-if="isAdmin" class="btn btn-primary btn-sm" @click="openCreate">发布公告</button>
       <a :href="homeUrl" class="btn btn-ghost btn-sm">返回首页</a>
     </div>
   </div>
@@ -48,16 +50,22 @@
       暂无公告
     </div>
 
-    <div v-for="a in list" :key="a.id" class="announcement-card" :class="{ pinned: a.isPinned }" @click="openDetail(a)">
-      <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">
-        <span v-if="a.isPinned">&#x1F4CC;</span>
-        <strong style="font-size:17px">{{ a.title }}</strong>
-        <span :class="'category-pill category-' + a.category">
-          {{ categoryLabel(a.category) }}
-        </span>
+    <div v-for="a in list" :key="a.id" class="announcement-card" :class="{ pinned: a.isPinned }">
+      <div class="clickable" @click="openDetail(a)">
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">
+          <span v-if="a.isPinned">&#x1F4CC;</span>
+          <strong style="font-size:17px">{{ a.title }}</strong>
+          <span :class="'category-pill category-' + a.category">
+            {{ categoryLabel(a.category) }}
+          </span>
+        </div>
+        <div style="color:var(--ink-secondary);font-size:14px;line-height:1.6" v-html="truncate(a.content, 150)"></div>
+        <div style="color:var(--ink-muted);font-size:12px;margin-top:12px">{{ a.createTime }}</div>
       </div>
-      <div style="color:var(--ink-secondary);font-size:14px;line-height:1.6" v-html="truncate(a.content, 150)"></div>
-      <div style="color:var(--ink-muted);font-size:12px;margin-top:12px">{{ a.createTime }}</div>
+      <div v-if="isAdmin" style="margin-top:10px;display:flex;gap:6px">
+        <button class="btn btn-ghost btn-sm" @click="openEdit(a)">编辑</button>
+        <button class="btn btn-ghost btn-sm" style="color:#ef4444" @click="confirmDelete(a)">删除</button>
+      </div>
     </div>
 
     <div style="text-align:center;margin-top:16px" v-if="total > pageSize">
@@ -78,7 +86,43 @@
       </div>
       <div style="line-height:1.8;font-size:15px" v-html="detail.content"></div>
       <div class="modal-actions">
+        <button v-if="isAdmin" class="btn btn-primary btn-sm" @click="showDetail=false;openEdit(detail)">编辑</button>
         <button class="btn btn-secondary" @click="showDetail=false">关闭</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Edit/Create Modal -->
+  <div class="modal-overlay" v-if="showEdit" @click.self="showEdit=false">
+    <div class="modal" style="max-width:600px">
+      <div class="modal-title">{{ editingId ? '编辑公告' : '发布新公告' }}</div>
+      <div style="margin-bottom:12px">
+        <label style="font-size:13px;font-weight:600;margin-bottom:4px;display:block">标题</label>
+        <input class="input" v-model="editForm.title" placeholder="公告标题" maxlength="100" />
+      </div>
+      <div style="margin-bottom:12px">
+        <label style="font-size:13px;font-weight:600;margin-bottom:4px;display:block">分类</label>
+        <select class="input" v-model="editForm.category">
+          <option value="notice">停水停电通知</option>
+          <option value="tip">维修小贴士</option>
+          <option value="general">普通通知</option>
+        </select>
+      </div>
+      <div style="margin-bottom:12px">
+        <label style="font-size:13px;font-weight:600;margin-bottom:4px;display:block">内容 <span style="font-weight:400;color:#94a3b8;font-size:11px">支持HTML</span></label>
+        <textarea class="input" v-model="editForm.content" rows="8" placeholder="公告内容..."></textarea>
+      </div>
+      <div style="margin-bottom:12px">
+        <label style="display:flex;align-items:center;gap:6px;cursor:pointer;font-size:13px">
+          <input type="checkbox" v-model="editForm.isPinned" true-value="1" false-value="0" />
+          置顶公告
+        </label>
+      </div>
+      <div class="modal-actions">
+        <button class="btn btn-secondary" @click="showEdit=false">取消</button>
+        <button class="btn btn-primary" @click="saveAnnouncement" :disabled="!editForm.title || !editForm.content">
+          {{ editingId ? '保存修改' : '发布' }}
+        </button>
       </div>
     </div>
   </div>
@@ -89,15 +133,18 @@ createApp({
   data() {
     return {
       currentCategory: '',
-      list: [],
-      page: 1, pageSize: 10, total: 0,
+      list: [], page: 1, pageSize: 10, total: 0,
       showDetail: false, detail: {},
-      homeUrl: '#'
+      showEdit: false, editingId: null,
+      editForm: { title: '', content: '', category: 'notice', isPinned: 0 },
+      homeUrl: '#',
+      isAdmin: false
     };
   },
   mounted() {
     if (!localStorage.getItem('token')) { location.href = 'login.html'; return; }
     const role = localStorage.getItem('role') || 'student';
+    this.isAdmin = role === 'admin';
     const pages = { student: 'student.html', teacher: 'teacher.html', admin: 'index.html' };
     this.homeUrl = pages[role] || 'login.html';
     this.loadList();
@@ -113,6 +160,42 @@ createApp({
       });
     },
     openDetail(a) { this.detail = a; this.showDetail = true; },
+    openCreate() {
+      this.editingId = null;
+      this.editForm = { title: '', content: '', category: 'notice', isPinned: 0 };
+      this.showEdit = true;
+    },
+    openEdit(a) {
+      this.editingId = a.id;
+      this.editForm = {
+        title: a.title,
+        content: a.content,
+        category: a.category,
+        isPinned: a.isPinned || 0
+      };
+      this.showEdit = true;
+    },
+    saveAnnouncement() {
+      const data = { ...this.editForm };
+      data.isPinned = parseInt(data.isPinned) || 0;
+      const req = this.editingId
+        ? api.announcement.update(this.editingId, data)
+        : api.announcement.create(data);
+      req.then(() => {
+        this.showEdit = false;
+        this.loadList();
+      }).catch(err => {
+        alert('操作失败：' + (err.response?.data?.message || '未知错误'));
+      });
+    },
+    confirmDelete(a) {
+      if (!confirm('确定删除公告"' + a.title + '"？此操作不可恢复。')) return;
+      api.announcement.del(a.id).then(() => {
+        this.loadList();
+      }).catch(err => {
+        alert('删除失败：' + (err.response?.data?.message || '未知错误'));
+      });
+    },
     truncate(html, len) {
       const div = document.createElement('div');
       div.innerHTML = html;

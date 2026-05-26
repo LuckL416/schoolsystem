@@ -93,6 +93,14 @@
         .tip-expand{font-size:11px;color:#3b82f6;cursor:pointer;font-weight:500;user-select:none}
         .tip-expand:hover{text-decoration:underline}
         .tip-detail{margin-top:8px;padding:10px 12px;background:#f8fafc;border-radius:6px;font-size:12px;color:#444;line-height:1.8}
+        /* Announcement Bar */
+        .announce-bar{background:#fff;border-bottom:1px solid #e8ecf1;padding:0;overflow:hidden;position:sticky;top:56px;z-index:49;white-space:nowrap}
+        .announce-bar-inner{display:inline-flex;animation:marquee 30s linear infinite;padding:8px 0}
+        .announce-bar:hover .announce-bar-inner{animation-play-state:paused}
+        .announce-item{display:inline-flex;align-items:center;gap:8px;padding:4px 32px;font-size:13px;color:#475569;border-right:1px solid #e8ecf1;white-space:nowrap;flex-shrink:0}
+        .announce-item .ann-dot{width:6px;height:6px;border-radius:50%;flex-shrink:0}
+        .ann-dot.notice{background:#ef4444}.ann-dot.general{background:#3b82f6}.ann-dot.tip{background:#10b981}
+        @keyframes marquee{0%{transform:translateX(0)}100%{transform:translateX(-50%)}}
     </style>
 </head>
 <body>
@@ -124,6 +132,23 @@
             </div>
             <button @click="showPwdModal=true">修改密码</button>
             <button @click="goBack">退出登录</button>
+        </div>
+    </div>
+
+    <!-- 公告滚动条 -->
+    <div class="announce-bar" v-if="pinnedAnnouncements.length > 0">
+        <div class="announce-bar-inner">
+            <span v-for="a in pinnedAnnouncements" :key="a.id" class="announce-item">
+                <span class="ann-dot" :class="a.category"></span>
+                <span style="font-weight:600">{{ a.title }}</span>
+                <span style="color:#94a3b8;font-size:11px" v-html="truncateText(a.content, 40)"></span>
+            </span>
+            <!-- Duplicate for seamless loop -->
+            <span v-for="a in pinnedAnnouncements" :key="'d-'+a.id" class="announce-item">
+                <span class="ann-dot" :class="a.category"></span>
+                <span style="font-weight:600">{{ a.title }}</span>
+                <span style="color:#94a3b8;font-size:11px" v-html="truncateText(a.content, 40)"></span>
+            </span>
         </div>
     </div>
 
@@ -328,6 +353,7 @@ createApp({
             notifTimer: null,
             tips: [],
             showTip: null,
+            pinnedAnnouncements: [],
             toasts: [],
             loading: false,
             stats: { pending: 0, processing: 0, done: 0 }
@@ -341,6 +367,7 @@ createApp({
         this.loadList(1)
         this.loadUnreadCount()
         this.loadTips()
+        this.loadPinnedAnnouncements()
         this.notifTimer = setInterval(() => this.loadUnreadCount(), 30000)
     },
     computed: {
@@ -517,6 +544,13 @@ createApp({
                 const data = res.data.data
                 this.tips = data.records || []
             }).catch(() => {})
+        },
+        loadPinnedAnnouncements() {
+            api.announcement.list({ size: 10 }).then(res => {
+                const data = res.data.data;
+                const all = data.records || [];
+                this.pinnedAnnouncements = all.filter(a => a.isPinned === 1);
+            }).catch(() => {});
         },
         truncateText(html, maxLen) {
             const div = document.createElement('div');

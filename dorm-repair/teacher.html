@@ -50,6 +50,13 @@
         .tab:last-child{border-radius:0 8px 8px 0}
         .tab.active{background:#409eff;color:#fff;border-color:#409eff}
         .section{margin-bottom:0}
+        .announce-bar{background:#fff;border-bottom:1px solid #e8ecf1;margin-bottom:16px;padding:0;overflow:hidden;white-space:nowrap;border-radius:8px}
+        .announce-bar-inner{display:inline-flex;animation:marquee 30s linear infinite;padding:8px 0}
+        .announce-bar:hover .announce-bar-inner{animation-play-state:paused}
+        .announce-item{display:inline-flex;align-items:center;gap:8px;padding:4px 32px;font-size:13px;color:#475569;border-right:1px solid #e8ecf1;white-space:nowrap;flex-shrink:0}
+        .ann-dot{width:6px;height:6px;border-radius:50%;flex-shrink:0}
+        .ann-dot.notice{background:#ef4444}.ann-dot.general{background:#3b82f6}
+        @keyframes marquee{0%{transform:translateX(0)}100%{transform:translateX(-50%)}}
     </style>
 </head>
 <body>
@@ -81,6 +88,17 @@
             </div>
             <button @click="showPwdModal=true">修改密码</button>
             <button @click="goBack">退出登录</button>
+        </div>
+    </div>
+
+    <div class="announce-bar" v-if="pinnedAnnouncements.length > 0">
+        <div class="announce-bar-inner">
+            <span v-for="a in pinnedAnnouncements" :key="a.id" class="announce-item">
+                <span class="ann-dot" :class="a.category"></span><span style="font-weight:600">{{ a.title }}</span>
+            </span>
+            <span v-for="a in pinnedAnnouncements" :key="'d-'+a.id" class="announce-item">
+                <span class="ann-dot" :class="a.category"></span><span style="font-weight:600">{{ a.title }}</span>
+            </span>
         </div>
     </div>
 
@@ -180,7 +198,8 @@ createApp({
             showNotif: false,
             notifications: [],
             unreadCount: 0,
-            notifTimer: null
+            notifTimer: null,
+            pinnedAnnouncements: []
         }
     },
     mounted() {
@@ -188,6 +207,7 @@ createApp({
         this.loadUser()
         this.loadList(1)
         this.loadUnreadCount()
+        this.loadPinnedAnnouncements()
         this.notifTimer = setInterval(() => this.loadUnreadCount(), 30000)
     },
     methods: {
@@ -270,6 +290,13 @@ createApp({
                 n.isRead = 1
                 this.loadUnreadCount()
             })
+        },
+        loadPinnedAnnouncements() {
+            api.announcement.list({ size: 10 }).then(res => {
+                const data = res.data.data;
+                const all = data.records || [];
+                this.pinnedAnnouncements = all.filter(a => a.isPinned === 1);
+            }).catch(() => {});
         },
         goBack() { api.goLogin() }
     }
