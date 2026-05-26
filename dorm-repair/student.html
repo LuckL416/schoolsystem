@@ -44,20 +44,20 @@
         .card h3{margin-bottom:14px;font-size:16px;color:#1a1a1a;display:flex;align-items:center;gap:8px}
         .form-row{display:flex;gap:10px;margin-bottom:10px}
         .form-row select,.form-row input{flex:1}
-        select,input,textarea{margin:0;padding:10px 12px;border:1px solid #ddd;border-radius:8px;outline:none;font-size:14px;width:100%;box-sizing:border-box}
-        button{width:auto}
+        select,input,textarea{margin:0;padding:10px 12px;border:1px solid #ddd;border-radius:8px;outline:none;font-size:15px;width:100%;box-sizing:border-box}
         select{background:white;cursor:pointer;width:100%}
         input:focus,textarea:focus,select:focus{border-color:#409eff}
         textarea{resize:vertical;min-height:80px;width:100%}
-        button{background:#409eff;color:white;border:none;cursor:pointer;font-weight:500;transition:opacity 0.2s}
-        button:hover{opacity:0.85}
-        .btn-cancel{background:#f56c6c;width:auto;padding:5px 14px;font-size:12px}
-        .btn-evaluate{width:auto;padding:5px 14px;font-size:12px;background:#67c23a}
+        button{width:auto;border:none;border-radius:8px;cursor:pointer;font-weight:500;font-size:15px;transition:all 0.2s;color:white}
+        button:hover{filter:brightness(0.92)}
+        .btn-submit{background:#16a34a;width:100%;font-size:16px;font-weight:600;padding:12px}
+        .btn-cancel{background:#f56c6c;padding:5px 14px;font-size:12px}
+        .btn-evaluate{background:#16a34a;padding:5px 14px;font-size:12px}
         .upload-row{display:flex;gap:10px;align-items:center;margin-bottom:10px}
         .upload-row input[type=file]{flex:1;width:auto}
         .upload-row button{width:auto;padding:8px 16px;font-size:13px;background:#67c23a;flex-shrink:0}
         table{width:100%;background:white;border-radius:8px;overflow:hidden;border-collapse:collapse;font-size:13px;table-layout:auto}
-        th,td{padding:8px 10px;text-align:left;border-bottom:1px solid #eee;font-size:12px}
+        th,td{padding:8px 10px;text-align:left;border-bottom:1px solid #eee;font-size:13px}
         th{background:#f8f9fa;color:#666;font-weight:600;white-space:nowrap}
         th:nth-child(4),td:nth-child(4){max-width:none;white-space:normal;word-break:break-word}
         td{color:#444;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
@@ -67,7 +67,8 @@
         .tag-processing{background:#ecf5ff;color:#409eff}
         .tag-completed{background:#f0f9eb;color:#67c23a}
         .pagination{display:flex;gap:8px;justify-content:center;margin-top:16px;align-items:center}
-        .pagination button{padding:6px 14px;font-size:13px;border:1px solid #ddd;background:white;border-radius:4px;cursor:pointer;color:#333}
+        .pagination button{padding:6px 14px;font-size:13px;border:1px solid #ddd;background:white;border-radius:4px;cursor:pointer;color:#333;filter:none}
+        .pagination button:hover{background:#e8ecf1}
         .pagination button:disabled{color:#ccc;cursor:not-allowed}
         .pagination span{font-size:13px;color:#666}
         .notification{background:#fdf6ec;color:#e6a23c;padding:8px 16px;border-radius:8px;margin-bottom:12px;font-size:13px;display:flex;justify-content:space-between;align-items:center}
@@ -207,7 +208,7 @@
             <button @click="uploadImage" :disabled="!selectedFile || uploading">{{uploading ? '上传中...' : '上传图片'}}</button>
         </div>
         <div v-if="form.imageUrls" style="font-size:12px;color:#999;margin-bottom:8px">已上传: {{form.imageUrls}}</div>
-        <button @click="submit">提交报修</button>
+        <button class="btn-submit" @click="submit">提交报修</button>
     </div>
 
     <div class="card">
@@ -281,7 +282,7 @@
             <input v-model="pwdForm.newPassword" type="password" placeholder="新密码" />
             <div class="modal-btns">
                 <button style="background:#909399;width:auto;padding:8px 20px" @click="showPwdModal=false">取消</button>
-                <button style="width:auto;padding:8px 20px" @click="changePassword">确认</button>
+                <button style="background:#409eff;width:auto;padding:8px 20px" @click="changePassword">确认</button>
             </div>
         </div>
     </div>
@@ -320,8 +321,8 @@
                     maxlength="200" placeholder="说说你的感受..."></textarea>
         </div>
         <div class="modal-actions">
-          <button class="btn btn-secondary" @click="showEvaluate=false">取消</button>
-          <button class="btn btn-primary" @click="submitEvaluate" :disabled="!canEvaluate">
+          <button class="btn-cancel" @click="showEvaluate=false" style="background:#909399">取消</button>
+          <button class="btn-submit" @click="submitEvaluate" :disabled="!canEvaluate" style="width:auto">
             提交评价
           </button>
         </div>
