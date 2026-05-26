@@ -261,7 +261,6 @@ tr:hover td { background: var(--surface-alt); }
 /* --- Tabs --- */
 .tabs { display: flex; gap: 0; border-bottom: 2px solid var(--border); margin-bottom: var(--spacing-lg); }
 .tab {
-  position: relative;
   padding: 10px 20px; font: var(--font-button); color: var(--ink-secondary);
   background: none; border: none; cursor: pointer;
   border-bottom: 2px solid transparent; margin-bottom: -2px;
@@ -284,81 +283,36 @@ tr:hover td { background: var(--surface-alt); }
 .star.active { color: #f59e0b; }
 .star:hover { color: #f59e0b; }
 
-/* --- Animations --- */
-
-/* Animated gradient background */
+/* --- Dynamic Background --- */
 body {
-  background: linear-gradient(135deg, #f0f4f8, #f8fafc, #eff6ff, #f0fdf4);
-  background-size: 400% 400%;
-  animation: gradientShift 20s ease infinite;
+  background: #f0f4f8;
+  position: relative;
+  overflow-x: hidden;
 }
-@keyframes gradientShift {
-  0% { background-position: 0% 50%; }
-  50% { background-position: 100% 50%; }
-  100% { background-position: 0% 50%; }
+body::before {
+  content: '';
+  position: fixed; inset: 0; pointer-events: none; z-index: 0;
+  background:
+    radial-gradient(circle at 15% 20%, rgba(59,130,246,0.07) 0%, transparent 50%),
+    radial-gradient(circle at 85% 75%, rgba(16,185,129,0.06) 0%, transparent 50%),
+    radial-gradient(circle at 50% 50%, rgba(245,158,11,0.04) 0%, transparent 50%),
+    radial-gradient(circle at 75% 15%, rgba(139,92,246,0.05) 0%, transparent 40%),
+    radial-gradient(circle at 25% 80%, rgba(59,130,246,0.05) 0%, transparent 45%);
+  animation: bgFloat 20s ease-in-out infinite;
 }
-
-/* Card entrance — staggered fade-up */
-.card, .stat-card, .announcement-card {
-  animation: fadeUp 0.5s ease backwards;
-}
-.card:nth-child(1) { animation-delay: 0.05s; }
-.card:nth-child(2) { animation-delay: 0.1s; }
-.card:nth-child(3) { animation-delay: 0.15s; }
-.card:nth-child(4) { animation-delay: 0.2s; }
-.card:nth-child(5) { animation-delay: 0.25s; }
-
-@keyframes fadeUp {
-  from { opacity: 0; transform: translateY(16px); }
-  to { opacity: 1; transform: translateY(0); }
+@keyframes bgFloat {
+  0%, 100% { transform: scale(1) rotate(0deg); }
+  25% { transform: scale(1.12) rotate(0.5deg); }
+  50% { transform: scale(1.05) rotate(-0.3deg); }
+  75% { transform: scale(1.1) rotate(0.2deg); }
 }
 
-/* Shimmer effect for banners/hero sections */
-@keyframes shimmer {
-  0% { background-position: -200% 0; }
-  100% { background-position: 200% 0; }
+/* Ensure content stays above background */
+.page-wrap, .container, .top-nav, .card, .welcome-banner,
+.modal-overlay, .dashboard, .login-box, .login-wrapper,
+.announce-bar, table, .stat-grid, .tabs, .section {
+  position: relative; z-index: 1;
 }
-.shimmer {
-  background: linear-gradient(90deg, transparent 0%, rgba(255,255,255,0.15) 50%, transparent 100%);
-  background-size: 200% 100%;
-  animation: shimmer 2.5s ease-in-out infinite;
-}
-
-/* Button pulse for primary actions */
-@keyframes btnPulse {
-  0%, 100% { box-shadow: 0 0 0 0 rgba(37,99,235,0.3); }
-  50% { box-shadow: 0 0 0 8px rgba(37,99,235,0); }
-}
-.btn-primary { animation: btnPulse 2.5s ease-in-out infinite; }
-
-/* Hover lift for interactive elements */
-.card, .stat-card, .tip-card, .announcement-card, .btn {
-  transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
-}
-.card:hover, .stat-card:hover, .tip-card:hover, .announcement-card:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 6px 20px rgba(0,0,0,0.08);
-}
-
-/* Row hover slide */
-tr { transition: background 0.15s ease, transform 0.15s ease; }
-tr:hover td { background: var(--surface-alt); }
-
-/* Modal entrance */
-.modal-overlay { animation: fadeIn 150ms ease; }
-.modal { animation: scaleIn 200ms ease; }
-@keyframes scaleIn {
-  from { opacity: 0; transform: scale(0.95) translateY(-10px); }
-  to { opacity: 1; transform: scale(1) translateY(0); }
-}
-
-/* Tab underline slide */
-.tab::after {
-  content: ''; position: absolute; bottom: -2px; left: 50%; width: 0; height: 2px;
-  background: var(--primary); transition: all 0.25s ease; transform: translateX(-50%);
-}
-.tab:hover::after { width: 60%; }
-.tab.active::after { width: 100%; }
 
 /* --- Responsive --- */
 @media (max-width: 768px) {
