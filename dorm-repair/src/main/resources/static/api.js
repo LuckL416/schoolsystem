@@ -31,3 +31,31 @@ const api = {
         location.href = 'login.html';
     }
 };
+
+// ========== Notification APIs ==========
+api.notification = {
+  list: (page = 1, size = 20) => api.get('/notification/list', { params: { page, size } }),
+  unreadCount: () => api.get('/notification/unread-count'),
+  markRead: (id) => api.put(`/notification/${id}/read`),
+  markAllRead: () => api.put('/notification/read-all'),
+};
+
+// ========== Announcement APIs ==========
+api.announcement = {
+  list: (params = {}) => api.get('/announcement/list', { params }),
+  detail: (id) => api.get(`/announcement/${id}`),
+  create: (data) => api.post('/announcement', data),
+  update: (id, data) => api.put(`/announcement/${id}`, data),
+  delete: (id) => api.delete(`/announcement/${id}`),
+};
+
+// ========== Inventory APIs ==========
+api.inventory = {
+  list: (params = {}) => api.get('/inventory/list', { params }),
+  create: (data) => api.post('/inventory', data),
+  update: (id, data) => api.put(`/inventory/${id}`, data),
+  stockIn: (id, data) => api.post(`/inventory/${id}/in`, data),
+  stockOut: (id, data) => api.post(`/inventory/${id}/out`, data),
+  records: (id, params = {}) => api.get(`/inventory/${id}/records`, { params }),
+  lowStock: () => api.get('/inventory/low-stock'),
+};
