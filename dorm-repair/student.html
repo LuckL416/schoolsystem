@@ -128,22 +128,6 @@
             <a href="announcement.html" class="top-link accent">📢 公告</a>
             <button @click="showPwdModal=true">修改密码</button>
             <button @click="goBack">退出登录</button>
-            <div class="notif-bell-wrap">
-              <button class="notif-bell" @click="toggleNotif" title="通知">🔔</button>
-              <span class="badge" v-if="unreadCount > 0" style="position:absolute;top:-4px;right:-6px">{{ unreadCount }}</span>
-              <div class="notif-dropdown" v-if="showNotif" @click.stop>
-                <div v-for="n in notifications" :key="n.id"
-                     class="notif-item" :class="{ unread: n.isRead === 0 }"
-                     @click="readNotif(n)">
-                  <div class="notif-item-title">{{ n.title }}</div>
-                  <div class="notif-item-content">{{ n.content }}</div>
-                  <div class="notif-item-time">{{ n.createTime }}</div>
-                </div>
-                <div v-if="notifications.length === 0" style="padding:16px;text-align:center;color:var(--ink-muted)">
-                  暂无通知
-                </div>
-              </div>
-            </div>
         </div>
     </div>
 
@@ -359,10 +343,6 @@ createApp({
             prevStatuses: {},
             evalForm: { attitude: 0, speed: 0, quality: 0, comment: '', orderId: null },
             showEvaluate: false,
-            showNotif: false,
-            notifications: [],
-            unreadCount: 0,
-            notifTimer: null,
             tips: [],
             showTip: null,
             pinnedAnnouncements: [],
@@ -377,10 +357,8 @@ createApp({
         this.loadDorms()
         this.loadFaultTypes()
         this.loadList(1)
-        this.loadUnreadCount()
         this.loadTips()
         this.loadPinnedAnnouncements()
-        this.notifTimer = setInterval(() => this.loadUnreadCount(), 30000)
     },
     computed: {
         canEvaluate() {
@@ -504,28 +482,6 @@ createApp({
         statusClass(s) { return 'tag-'+(s||'') },
         formatTime(t) { return t ? t.replace('T',' ').substring(0,19) : '' },
         roleText(r) { return {student:'学生',teacher:'师傅',admin:'管理员'}[r]||r },
-        toggleNotif() {
-            this.showNotif = !this.showNotif
-            if (this.showNotif) this.loadNotifications()
-        },
-        loadUnreadCount() {
-            api.notification.unreadCount().then(res => {
-                this.unreadCount = res.data.data || 0
-            }).catch(() => {})
-        },
-        loadNotifications() {
-            api.notification.list(1, 10).then(res => {
-                const data = res.data.data
-                this.notifications = data.records || []
-            })
-        },
-        readNotif(n) {
-            if (n.isRead === 1) return
-            api.notification.markRead(n.id).then(() => {
-                n.isRead = 1
-                this.loadUnreadCount()
-            })
-        },
         toast(msg, type) {
             type = type || 'info';
             const t = { msg, type };
