@@ -1,10 +1,15 @@
 package com.school.dormrepair.controller;
 
+import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.school.dormrepair.common.Result;
 import com.school.dormrepair.entity.WorkOrder;
+import com.school.dormrepair.mapper.WorkOrderMapper;
 import com.school.dormrepair.service.WorkOrderService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
+
+import java.util.List;
+import java.util.stream.Collectors;
 
 @RestController
 @RequestMapping("/order")
@@ -12,6 +17,9 @@ public class WorkOrderController {
 
     @Autowired
     private WorkOrderService workOrderService;
+
+    @Autowired
+    private WorkOrderMapper workOrderMapper;
 
     @PostMapping("/submit")
     public Result<String> submit(
@@ -68,11 +76,39 @@ public class WorkOrderController {
         return workOrderService.cancel(orderId, userId);
     }
 
+    /** Student confirms acceptance of a completed repair */
+    @PostMapping("/acceptance/{orderId}")
+    public Result<?> acceptance(@PathVariable Long orderId,
+                                @RequestAttribute("userId") Long userId) {
+        workOrderService.acceptance(orderId, userId);
+        return Result.success();
+    }
+
+    /** Student evaluates with 3 dimensions + optional comment */
     @PostMapping("/evaluate/{orderId}")
-    public Result<String> evaluate(
-            @PathVariable Long orderId,
-            @RequestParam Integer star
-    ) {
-        return workOrderService.evaluate(orderId, star);
+    public Result<?> evaluate(@PathVariable Long orderId,
+                              @RequestParam Integer attitude,
+                              @RequestParam Integer speed,
+                              @RequestParam Integer quality,
+                              @RequestParam(required = false) String comment,
+                              @RequestAttribute("userId") Long userId) {
+        workOrderService.evaluate(orderId, userId, attitude, speed, quality, comment);
+        return Result.success();
+    }
+
+    /** Admin: list work orders with bad ratings (avg of 3 dimensions < 3) */
+    @GetMapping("/bad-ratings")
+    public Result<List<WorkOrder>> badRatings() {
+        LambdaQueryWrapper<WorkOrder> qw = new LambdaQueryWrapper<>();
+        qw.isNotNull(WorkOrder::getEvaluateAttitude)
+          .orderByDesc(WorkOrder::getEvaluateTime);
+        List<WorkOrder> all = workOrderMapper.selectList(qw);
+        List<WorkOrder> bad = all.stream()
+            .filter(o -> {
+                double avg = (o.getEvaluateAttitude() + o.getEvaluateSpeed() + o.getEvaluateQuality()) / 3.0;
+                return avg < 3.0;
+            })
+            .collect(Collectors.toList());
+        return Result.success(bad);
     }
 }
