@@ -111,4 +111,15 @@ public class WorkOrderController {
             .collect(Collectors.toList());
         return Result.success(bad);
     }
+
+    /** List all urgent uncompleted orders */
+    @GetMapping("/urgent")
+    public Result<List<WorkOrder>> urgentList() {
+        LambdaQueryWrapper<WorkOrder> qw = new LambdaQueryWrapper<>();
+        qw.eq(WorkOrder::getIsUrgent, 1)
+          .in(WorkOrder::getStatus, "pending", "processing")
+          .orderByAsc(WorkOrder::getUrgentLevel)
+          .orderByDesc(WorkOrder::getSubmitTime);
+        return Result.success(workOrderMapper.selectList(qw));
+    }
 }

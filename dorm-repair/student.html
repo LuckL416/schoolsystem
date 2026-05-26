@@ -90,6 +90,9 @@
                 <option v-for="f in faultTypes" :value="f.id">{{f.name}}（{{f.workType}}）</option>
             </select>
         </div>
+        <span v-if="selectedFaultTypeUrgent" style="color:var(--danger);font-size:13px;margin-left:8px">
+            ⚠️ 此故障为紧急类型，将优先处理
+        </span>
         <textarea v-model="form.description" placeholder="请描述故障情况..."></textarea>
         <div class="upload-row">
             <input type="file" ref="fileInput" accept="image/*" @change="onFileSelected" />
@@ -211,6 +214,11 @@ createApp({
     computed: {
         canEvaluate() {
             return this.evalForm.attitude > 0 && this.evalForm.speed > 0 && this.evalForm.quality > 0;
+        },
+        selectedFaultTypeUrgent() {
+            if (!this.form.faultTypeId) return false;
+            const ft = this.faultTypes.find(f => f.id === this.form.faultTypeId);
+            return ft && ft.urgentLevel <= 2;
         },
     },
     methods: {

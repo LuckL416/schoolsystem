@@ -3,6 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <title>师傅端 - 维修管理</title>
+    <link rel="stylesheet" href="design-system.css">
     <script src="https://cdn.jsdelivr.net/npm/vue@3"></script>
     <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
     <style>
@@ -61,8 +62,8 @@
     <div class="card">
         <table>
             <tr><th>编号</th><th>描述</th><th>状态</th><th>提交时间</th><th>维修备注</th><th>操作</th></tr>
-            <tr v-for="item in list">
-                <td>{{item.orderNo || item.id}}</td>
+            <tr v-for="item in list" :style="item.isUrgent ? 'border-left: 3px solid var(--danger); background: var(--danger-soft)' : ''">
+                <td>{{item.orderNo || item.id}} <span class="urgent-badge" v-if="item.isUrgent">⚠ 紧急</span></td>
                 <td>{{item.description}}</td>
                 <td><span class="tag" :class="statusClass(item.status)">{{statusText(item.status)}}</span></td>
                 <td>{{formatTime(item.submitTime)}}</td>
@@ -137,7 +138,11 @@ createApp({
             this.currentPage = page
             const res = await api.get(`/order/all?page=${page}&size=10`)
             const d = res.data.data
-            this.list = d.records || []
+            this.list = (d.records || []).sort((a, b) => {
+                if (a.isUrgent && !b.isUrgent) return -1;
+                if (!a.isUrgent && b.isUrgent) return 1;
+                return new Date(b.submitTime) - new Date(a.submitTime);
+            })
             this.totalPages = d.pages || 1
             this.totalItems = d.total || 0
         },
