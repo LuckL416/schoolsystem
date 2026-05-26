@@ -19,6 +19,14 @@ const api = {
         return axios.post(API_BASE + url, data, { headers: this.headers() });
     },
 
+    async put(url, data) {
+        return axios.put(API_BASE + url, data || {}, { headers: this.headers() });
+    },
+
+    async delete(url) {
+        return axios.delete(API_BASE + url, { headers: this.headers() });
+    },
+
     // 登录用（不需要 token）
     async loginPost(url, data) {
         return axios.post(API_BASE + url, data, {

@@ -3,6 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <title>管理端 - 系统管理</title>
+    <link rel="stylesheet" href="design-system.css">
     <script src="https://cdn.jsdelivr.net/npm/vue@3"></script>
     <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
     <style>
@@ -49,7 +50,29 @@
             <span>欢迎，<strong>{{user.name || '--'}}</strong></span>
             <span class="role-badge" :class="'role-'+user.role">{{roleText(user.role)}}</span>
         </div>
-        <div style="display:flex;gap:8px">
+        <div style="display:flex;gap:8px;align-items:center">
+            <!-- Notification Bell -->
+            <div style="position:relative">
+              <button class="notif-bell" @click="toggleNotif" title="通知">
+                &#x1F514;
+                <span class="badge" v-if="unreadCount > 0">{{ unreadCount }}</span>
+              </button>
+              <div class="notif-dropdown" v-if="showNotif" @click.stop>
+                <div v-for="n in notifications" :key="n.id"
+                     class="notif-item" :class="{ unread: n.isRead === 0 }"
+                     @click="readNotif(n)">
+                  <div class="notif-item-title">{{ n.title }}</div>
+                  <div class="notif-item-content">{{ n.content }}</div>
+                  <div class="notif-item-time">{{ n.createTime }}</div>
+                </div>
+                <div v-if="notifications.length === 0" style="padding:16px;text-align:center;color:var(--ink-muted)">
+                  暂无通知
+                </div>
+              </div>
+            </div>
+            <a href="announcement.html" style="padding:6px 14px;border:none;border-radius:4px;cursor:pointer;font-size:12px;background:#f0f2f5;color:#666;text-decoration:none;display:inline-block">公告管理</a>
+            <a href="inventory.html" style="padding:6px 14px;border:none;border-radius:4px;cursor:pointer;font-size:12px;background:#f0f2f5;color:#666;text-decoration:none;display:inline-block">耗材库存</a>
+            <a href="bigscreen.html" target="_blank" style="padding:6px 14px;border:none;border-radius:4px;cursor:pointer;font-size:12px;background:#f0f2f5;color:#666;text-decoration:none;display:inline-block">大屏看板</a>
             <button @click="showPwdModal=true">修改密码</button>
             <button @click="goBack">返回首页</button>
         </div>
@@ -171,7 +194,11 @@ createApp({
             faultTypes: [],
             showFaultModal: false, editingFault: {},
             showPwdModal: false,
-            pwdForm: { oldPassword:'', newPassword:'' }
+            pwdForm: { oldPassword:'', newPassword:'' },
+            showNotif: false,
+            notifications: [],
+            unreadCount: 0,
+            notifTimer: null
         }
     },
     mounted() {
@@ -179,6 +206,8 @@ createApp({
         this.loadUser()
         this.loadUsers(1)
         this.loadFaultTypes()
+        this.loadUnreadCount()
+        this.notifTimer = setInterval(() => this.loadUnreadCount(), 30000)
     },
     methods: {
         async loadUsers(page) {
@@ -253,6 +282,28 @@ createApp({
             alert('密码修改成功！')
             this.showPwdModal = false
             this.pwdForm = { oldPassword:'', newPassword:'' }
+        },
+        toggleNotif() {
+            this.showNotif = !this.showNotif
+            if (this.showNotif) this.loadNotifications()
+        },
+        loadUnreadCount() {
+            api.notification.unreadCount().then(res => {
+                this.unreadCount = res.data.data || 0
+            }).catch(() => {})
+        },
+        loadNotifications() {
+            api.notification.list(1, 10).then(res => {
+                const data = res.data.data
+                this.notifications = data.records || []
+            })
+        },
+        readNotif(n) {
+            if (n.isRead === 1) return
+            api.notification.markRead(n.id).then(() => {
+                n.isRead = 1
+                this.loadUnreadCount()
+            })
         },
         goBack() { location.href = 'index.html' }
     }

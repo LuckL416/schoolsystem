@@ -19,6 +19,14 @@ const api = {
         return axios.post(API_BASE + url, data, { headers: this.headers() });
     },
 
+    async put(url, data) {
+        return axios.put(API_BASE + url, data || {}, { headers: this.headers() });
+    },
+
+    async delete(url) {
+        return axios.delete(API_BASE + url, { headers: this.headers() });
+    },
+
     // 登录用（不需要 token）
     async loginPost(url, data) {
         return axios.post(API_BASE + url, data, {
@@ -34,6 +42,21 @@ const api = {
     announcement: {
         list(params) {
             return api.get('/announcement/page', params);
+        }
+    },
+
+    notification: {
+        list(page, size) {
+            return api.get('/notification/list', { page, size });
+        },
+        unreadCount() {
+            return api.get('/notification/unread-count');
+        },
+        markRead(id) {
+            return api.put('/notification/' + id + '/read');
+        },
+        markAllRead() {
+            return api.put('/notification/read-all');
         }
     },
 
