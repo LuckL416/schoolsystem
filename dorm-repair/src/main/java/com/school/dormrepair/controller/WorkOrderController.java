@@ -112,6 +112,26 @@ public class WorkOrderController {
         return Result.success(bad);
     }
 
+    /** Admin manually assigns order to a teacher */
+    @PostMapping("/assign/{orderId}")
+    public Result<?> assign(@PathVariable Long orderId, @RequestParam Long teacherId) {
+        workOrderService.assign(orderId, teacherId);
+        return Result.success();
+    }
+
+    /** Teacher claims an order from the pool */
+    @PostMapping("/claim/{orderId}")
+    public Result<?> claim(@PathVariable Long orderId, @RequestAttribute("userId") Long userId) {
+        workOrderService.claim(orderId, userId);
+        return Result.success();
+    }
+
+    /** Get unclaimed orders pool */
+    @GetMapping("/pool")
+    public Result<List<WorkOrder>> pool() {
+        return Result.success(workOrderService.pool());
+    }
+
     /** List all urgent uncompleted orders */
     @GetMapping("/urgent")
     public Result<List<WorkOrder>> urgentList() {

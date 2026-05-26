@@ -43,6 +43,13 @@
         .modal-btns{display:flex;gap:10px;margin-top:16px;justify-content:flex-end}
         .btn-confirm{background:#67c23a}
         .btn-cancel-modal{background:#909399}
+        .btn-sm{padding:4px 10px;font-size:12px}
+        .tabs{display:flex;gap:0;margin-bottom:16px}
+        .tab{padding:10px 22px;border:1px solid #ddd;background:white;color:#666;cursor:pointer;font-size:14px;transition:all 0.2s;outline:none}
+        .tab:first-child{border-radius:8px 0 0 8px}
+        .tab:last-child{border-radius:0 8px 8px 0}
+        .tab.active{background:#409eff;color:#fff;border-color:#409eff}
+        .section{margin-bottom:0}
     </style>
 </head>
 <body>
@@ -59,7 +66,15 @@
     </div>
 
     <div class="title">维修师傅工作台</div>
-    <div class="card">
+    <div class="tabs">
+        <button class="tab" :class="{ active: currentTab === 'mine' }" @click="currentTab='mine'; loadMyOrders()">
+            我的工单
+        </button>
+        <button class="tab" :class="{ active: currentTab === 'pool' }" @click="currentTab='pool'; loadPool()">
+            工单池 <span v-if="poolCount" style="background:var(--primary,#409eff);color:#fff;border-radius:10px;padding:0 6px;font-size:11px">{{ poolCount }}</span>
+        </button>
+    </div>
+    <div v-if="currentTab === 'mine'" class="card">
         <table>
             <tr><th>编号</th><th>描述</th><th>状态</th><th>提交时间</th><th>维修备注</th><th>操作</th></tr>
             <tr v-for="item in list" :style="item.isUrgent ? 'border-left: 3px solid var(--danger); background: var(--danger-soft)' : ''">
@@ -82,6 +97,24 @@
             <button :disabled="currentPage<=1" @click="loadList(currentPage-1)">上一页</button>
             <span>第 {{currentPage}} / {{totalPages}} 页（共 {{totalItems}} 条）</span>
             <button :disabled="currentPage>=totalPages" @click="loadList(currentPage+1)">下一页</button>
+        </div>
+    </div>
+
+    <!-- 工单池 -->
+    <div v-if="currentTab === 'pool'" class="section">
+        <div class="card">
+            <div class="table-wrap" style="margin:0">
+                <table>
+                    <tr><th>工单号</th><th>描述</th><th>宿舍</th><th>提交时间</th><th>操作</th></tr>
+                    <tr v-for="o in poolOrders" :key="o.id">
+                        <td>{{ o.orderNo }}</td>
+                        <td>{{ (o.description || '').substring(0, 30) }}</td>
+                        <td>{{ o.dormId }}</td>
+                        <td>{{ formatTime(o.submitTime) }}</td>
+                        <td><button class="btn btn-primary btn-sm" @click="claimOrder(o)">抢单</button></td>
+                    </tr>
+                </table>
+            </div>
         </div>
     </div>
 
@@ -119,6 +152,9 @@ createApp({
         return {
             list: [], user: {},
             currentPage: 1, totalPages: 1, totalItems: 0,
+            currentTab: 'mine',
+            poolOrders: [],
+            poolCount: 0,
             showModal: false, remarkInput: '', completingOrderId: null,
             showPwdModal: false,
             pwdForm: { oldPassword:'', newPassword:'' }
@@ -145,6 +181,21 @@ createApp({
             })
             this.totalPages = d.pages || 1
             this.totalItems = d.total || 0
+        },
+        loadMyOrders() {
+            this.loadList(1)
+        },
+        async loadPool() {
+            const res = await api.get('/order/pool')
+            this.poolOrders = res.data.data || []
+            this.poolCount = this.poolOrders.length
+        },
+        async claimOrder(order) {
+            if (!confirm('确认抢单？')) return
+            await api.post('/order/claim/' + order.id)
+            alert('抢单成功！')
+            this.loadPool()
+            this.loadMyOrders()
         },
         async accept(id) {
             await api.post(`/order/accept/${id}`)

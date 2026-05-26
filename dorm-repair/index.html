@@ -88,11 +88,12 @@
 
     <div class="table-wrap">
         <table>
-            <tr><th>编号</th><th>描述</th><th>状态</th><th>提交时间</th></tr>
+            <tr><th>编号</th><th>描述</th><th>状态</th><th>分配师傅</th><th>提交时间</th></tr>
             <tr v-for="item in list" :style="item.isUrgent ? 'border-left: 3px solid var(--danger); background: var(--danger-soft)' : ''">
                 <td>{{item.orderNo || item.id}} <span class="urgent-badge" v-if="item.isUrgent">⚠ 紧急</span></td>
                 <td>{{item.description}}</td>
                 <td><span class="tag" :class="statusClass(item.status)">{{statusText(item.status)}}</span></td>
+                <td>{{ item.assignedTeacherId || '未分配' }}</td>
                 <td>{{formatTime(item.submitTime)}}</td>
             </tr>
         </table>
