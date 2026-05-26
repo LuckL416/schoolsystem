@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>宿舍公告 - 宿舍报修系统</title>
+<link rel="stylesheet" href="design-system.css">
+<script src="https://unpkg.com/vue@3/dist/vue.global.prod.js"></script>
+<script src="https://unpkg.com/axios/dist/axios.min.js"></script>
+<script src="api.js"></script>
+<style>
+  .announcement-card {
+    background: var(--canvas); border: 1px solid var(--border);
+    border-radius: var(--rounded-lg); padding: var(--spacing-xl);
+    margin-bottom: var(--spacing-md); cursor: pointer;
+    transition: border-color 150ms, box-shadow 150ms;
+  }
+  .announcement-card:hover { border-color: var(--primary); box-shadow: var(--shadow-card); }
+  .announcement-card.pinned { border-left: 3px solid var(--warning); }
+  .category-pill {
+    display: inline-block; font-size: 11px; font-weight: 600; padding: 2px 8px;
+    border-radius: var(--rounded-full);
+  }
+  .category-notice { background: #fef3c7; color: #d97706; }
+  .category-tip { background: #dbeafe; color: #2563eb; }
+  .category-general { background: #f1f5f9; color: #475569; }
+</style>
+</head>
+<body>
+<div id="app">
+  <div class="top-nav">
+    <div class="top-nav-left">
+      <div class="top-nav-title">宿舍公告</div>
+    </div>
+    <div class="top-nav-right">
+      <a :href="homeUrl" class="btn btn-ghost btn-sm">返回首页</a>
+    </div>
+  </div>
+  <div class="page-wrap">
+    <div class="tabs">
+      <button class="tab" :class="{ active: currentCategory === '' }" @click="currentCategory=''; loadList()">全部</button>
+      <button class="tab" :class="{ active: currentCategory === 'notice' }" @click="currentCategory='notice'; loadList()">停水停电通知</button>
+      <button class="tab" :class="{ active: currentCategory === 'tip' }" @click="currentCategory='tip'; loadList()">维修小贴士</button>
+      <button class="tab" :class="{ active: currentCategory === 'general' }" @click="currentCategory='general'; loadList()">普通通知</button>
+    </div>
+
+    <div v-if="list.length === 0" style="text-align:center;padding:48px;color:var(--ink-muted)">
+      暂无公告
+    </div>
+
+    <div v-for="a in list" :key="a.id" class="announcement-card" :class="{ pinned: a.isPinned }" @click="openDetail(a)">
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">
+        <span v-if="a.isPinned">&#x1F4CC;</span>
+        <strong style="font-size:17px">{{ a.title }}</strong>
+        <span :class="'category-pill category-' + a.category">
+          {{ categoryLabel(a.category) }}
+        </span>
+      </div>
+      <div style="color:var(--ink-secondary);font-size:14px;line-height:1.6" v-html="truncate(a.content, 150)"></div>
+      <div style="color:var(--ink-muted);font-size:12px;margin-top:12px">{{ a.createTime }}</div>
+    </div>
+
+    <div style="text-align:center;margin-top:16px" v-if="total > pageSize">
+      <button class="btn btn-secondary btn-sm" @click="page--; loadList()" :disabled="page <= 1">上一页</button>
+      <span style="margin:0 12px;font-size:14px;color:var(--ink-secondary)">第 {{ page }} / {{ Math.ceil(total / pageSize) }} 页</span>
+      <button class="btn btn-secondary btn-sm" @click="page++; loadList()" :disabled="page >= Math.ceil(total / pageSize)">下一页</button>
+    </div>
+  </div>
+
+  <!-- Detail Modal -->
+  <div class="modal-overlay" v-if="showDetail" @click.self="showDetail=false">
+    <div class="modal" style="max-width:700px">
+      <div class="modal-title">{{ detail.title }}</div>
+      <div style="display:flex;gap:8px;margin-bottom:16px">
+        <span :class="'category-pill category-' + detail.category">{{ categoryLabel(detail.category) }}</span>
+        <span style="color:var(--ink-muted);font-size:12px">{{ detail.createTime }}</span>
+        <span v-if="detail.updateTime" style="color:var(--ink-muted);font-size:12px">更新于 {{ detail.updateTime }}</span>
+      </div>
+      <div style="line-height:1.8;font-size:15px" v-html="detail.content"></div>
+      <div class="modal-actions">
+        <button class="btn btn-secondary" @click="showDetail=false">关闭</button>
+      </div>
+    </div>
+  </div>
+</div>
+<script>
+const { createApp } = Vue;
+createApp({
+  data() {
+    return {
+      currentCategory: '',
+      list: [],
+      page: 1, pageSize: 10, total: 0,
+      showDetail: false, detail: {},
+      homeUrl: '#'
+    };
+  },
+  mounted() {
+    if (!localStorage.getItem('token')) { location.href = 'login.html'; return; }
+    const role = localStorage.getItem('role') || 'student';
+    const pages = { student: 'student.html', teacher: 'teacher.html', admin: 'index.html' };
+    this.homeUrl = pages[role] || 'login.html';
+    this.loadList();
+  },
+  methods: {
+    loadList() {
+      const params = { page: this.page, size: this.pageSize };
+      if (this.currentCategory) params.category = this.currentCategory;
+      api.announcement.list(params).then(res => {
+        const data = res.data.data;
+        this.list = data.records || [];
+        this.total = data.total || this.list.length;
+      });
+    },
+    openDetail(a) { this.detail = a; this.showDetail = true; },
+    truncate(html, len) {
+      const div = document.createElement('div');
+      div.innerHTML = html;
+      const text = div.textContent || '';
+      return text.length > len ? text.substring(0, len) + '...' : text;
+    },
+    categoryLabel(c) {
+      const map = { notice: '停水停电', tip: '维修小贴士', general: '普通通知' };
+      return map[c] || c;
+    }
+  }
+}).mount('#app');
+</script>
+</body>
+</html>

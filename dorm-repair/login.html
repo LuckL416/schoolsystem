@@ -42,7 +42,7 @@
         .form-group{margin-bottom:18px}
         .input{
             width:100%;height:46px;padding:0 16px;
-            border:1.5px solid #e4e7ed;border-radius:8px;
+            border:1.5px solid #a1a7b4;border-radius:8px;
             outline:none;font-size:14px;transition:border-color 0.25s;
             background:#fafbfc;
         }
@@ -60,6 +60,10 @@
         .tip{text-align:center;margin-top:16px;color:#999;font-size:12px}
 
         .error-msg{color:#f56c6c;font-size:13px;text-align:center;margin-top:8px;min-height:20px}
+        .category-pill { display:inline-block;font-size:10px;font-weight:600;padding:1px 6px;border-radius:10px; }
+        .category-notice { background:#fef3c7;color:#d97706; }
+        .category-tip { background:#dbeafe;color:#2563eb; }
+        .category-general { background:#f1f5f9;color:#475569; }
     </style>
 </head>
 <body>
@@ -94,6 +98,14 @@
     <button class="btn" :class="role" @click="login">登 录</button>
     <div class="error-msg">{{errorMsg}}</div>
     <div class="tip">请选择您的身份后登录 | <a href="register.html" style="color:#409eff;text-decoration:none">学生注册</a></div>
+    <div class="latest-announcements" style="margin-top:24px;padding:16px;background:#f8fafc;border-radius:10px;max-width:400px;margin-left:auto;margin-right:auto">
+      <div style="font-weight:600;margin-bottom:8px;color:#475569;font-size:14px">&#x1F4E2; 最新公告</div>
+      <div v-if="announcements.length === 0" style="color:#94a3b8;font-size:12px">暂无公告</div>
+      <div v-for="a in announcements" :key="a.id" style="padding:6px 0;border-bottom:1px solid #e2e8f0;font-size:13px">
+        <span :class="'category-pill category-' + a.category" style="margin-right:6px">{{ a.category === 'notice' ? '通知' : a.category === 'tip' ? '贴士' : '公告' }}</span>
+        {{ a.title }}
+      </div>
+    </div>
 </div>
 
 <script src="api.js"></script>
@@ -105,8 +117,15 @@ createApp({
             role: 'student',
             username: '',
             password: '',
-            errorMsg: ''
+            errorMsg: '',
+            announcements: []
         }
+    },
+    mounted() {
+        api.announcement.list({ size: 3 }).then(res => {
+            const data = res.data.data;
+            this.announcements = data.records || [];
+        }).catch(() => {});
     },
     methods: {
         async login() {
