@@ -3,6 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <title>学生端 - 报修</title>
+    <link rel="stylesheet" href="design-system.css">
     <script src="https://cdn.jsdelivr.net/npm/vue@3"></script>
     <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
     <style>
@@ -48,6 +49,13 @@
         .modal-box h3{margin-bottom:16px;font-size:18px}
         .modal-box input{width:100%;padding:10px 12px;margin-bottom:12px;border:1px solid #ddd;border-radius:6px;outline:none;font-size:14px}
         .modal-btns{display:flex;gap:10px;margin-top:16px;justify-content:flex-end}
+        .star-rating{display:flex;gap:4px}.star{font-size:28px;cursor:pointer;color:#ddd;transition:color 0.2s}.star.active{color:#f7ba2a}
+        .modal{background:white;padding:28px;border-radius:12px;width:440px;box-shadow:0 8px 32px rgba(0,0,0,0.15)}
+        .modal-title{font-size:18px;font-weight:600;margin-bottom:20px;color:#333}
+        .modal-actions{display:flex;gap:10px;margin-top:16px;justify-content:flex-end}
+        .btn-secondary{background:#909399;width:auto;padding:8px 20px;font-size:14px}
+        .tag-pending_acceptance{background:#fef0f0;color:#f56c6c}
+        .tag-accepted{background:#f0f9eb;color:#67c23a}
     </style>
 </head>
 <body>
@@ -104,6 +112,9 @@
                 <td>{{formatTime(item.submitTime)}}</td>
                 <td>
                     <button v-if="item.status==='pending'" class="btn-cancel" @click="cancelOrder(item.id)">取消</button>
+                    <button v-if="item.status==='pending_acceptance'" class="btn-evaluate" @click="confirmAcceptance(item)">确认验收</button>
+                    <button v-if="item.status==='accepted' && !item.evaluateAttitude" class="btn-evaluate" @click="openEvaluate(item)">评价打分</button>
+                    <span v-if="item.evaluateAttitude" style="color:#67c23a;font-size:13px">已评价 (态度{{item.evaluateAttitude}}/速度{{item.evaluateSpeed}}/质量{{item.evaluateQuality}})</span>
                     <button v-if="item.status==='completed' && !item.evaluateStar" class="btn-evaluate" @click="evaluate(item.id,5)">评5星</button>
                     <span v-if="item.status==='completed' && item.evaluateStar" style="color:#e6a23c;font-size:13px">已评{{item.evaluateStar}}星</span>
                 </td>
@@ -128,6 +139,48 @@
             </div>
         </div>
     </div>
+
+    <!-- Evaluation Modal -->
+    <div class="modal-overlay" v-if="showEvaluate" @click.self="showEvaluate=false">
+      <div class="modal">
+        <div class="modal-title">评价工单</div>
+        <div style="margin-bottom:16px">
+          <div style="margin-bottom:8px;font-weight:500">服务态度</div>
+          <div class="star-rating">
+            <span v-for="s in 5" :key="s" class="star"
+                  :class="{ active: evalForm.attitude >= s }"
+                  @click="evalForm.attitude = s">★</span>
+          </div>
+        </div>
+        <div style="margin-bottom:16px">
+          <div style="margin-bottom:8px;font-weight:500">维修速度</div>
+          <div class="star-rating">
+            <span v-for="s in 5" :key="s" class="star"
+                  :class="{ active: evalForm.speed >= s }"
+                  @click="evalForm.speed = s">★</span>
+          </div>
+        </div>
+        <div style="margin-bottom:16px">
+          <div style="margin-bottom:8px;font-weight:500">维修质量</div>
+          <div class="star-rating">
+            <span v-for="s in 5" :key="s" class="star"
+                  :class="{ active: evalForm.quality >= s }"
+                  @click="evalForm.quality = s">★</span>
+          </div>
+        </div>
+        <div style="margin-bottom:16px">
+          <div style="margin-bottom:8px;font-weight:500">文字评价 (选填, 200字内)</div>
+          <textarea class="input" v-model="evalForm.comment" rows="3"
+                    maxlength="200" placeholder="说说你的感受..."></textarea>
+        </div>
+        <div class="modal-actions">
+          <button class="btn btn-secondary" @click="showEvaluate=false">取消</button>
+          <button class="btn btn-primary" @click="submitEvaluate" :disabled="!canEvaluate">
+            提交评价
+          </button>
+        </div>
+      </div>
+    </div>
 </div>
 
 <script src="api.js"></script>
@@ -143,7 +196,9 @@ createApp({
             notification: '',
             showPwdModal: false,
             pwdForm: { oldPassword:'', newPassword:'' },
-            prevStatuses: {}
+            prevStatuses: {},
+            evalForm: { attitude: 0, speed: 0, quality: 0, comment: '', orderId: null },
+            showEvaluate: false
         }
     },
     mounted() {
@@ -152,6 +207,11 @@ createApp({
         this.loadDorms()
         this.loadFaultTypes()
         this.loadList(1)
+    },
+    computed: {
+        canEvaluate() {
+            return this.evalForm.attitude > 0 && this.evalForm.speed > 0 && this.evalForm.quality > 0;
+        },
     },
     methods: {
         async loadUser() {
@@ -223,6 +283,30 @@ createApp({
             alert('评价成功！')
             this.loadList(this.currentPage)
         },
+        confirmAcceptance(order) {
+            if (!confirm('确认该工单已维修完成？')) return;
+            api.post('/order/acceptance/' + order.id).then(() => {
+                this.loadList(this.currentPage);
+                alert('验收成功！');
+            });
+        },
+        openEvaluate(order) {
+            this.evalForm = { attitude: 0, speed: 0, quality: 0, comment: '', orderId: order.id };
+            this.showEvaluate = true;
+        },
+        submitEvaluate() {
+            var params = {
+                attitude: this.evalForm.attitude,
+                speed: this.evalForm.speed,
+                quality: this.evalForm.quality,
+            };
+            if (this.evalForm.comment) params.comment = this.evalForm.comment;
+            api.post('/order/evaluate/' + this.evalForm.orderId, null, { params: params }).then(() => {
+                this.showEvaluate = false;
+                this.loadList(this.currentPage);
+                alert('评价提交成功！');
+            });
+        },
         async changePassword() {
             if (!this.pwdForm.oldPassword || !this.pwdForm.newPassword) { alert('请填写完整'); return }
             const params = `oldPassword=${encodeURIComponent(this.pwdForm.oldPassword)}&newPassword=${encodeURIComponent(this.pwdForm.newPassword)}`
@@ -233,7 +317,7 @@ createApp({
         },
         getDormName(id) { const d = this.dorms.find(x => x.id===id); return d ? d.building+d.room : id },
         getFaultTypeName(id) { const f = this.faultTypes.find(x => x.id===id); return f ? f.name : id },
-        statusText(s) { return {pending:'待处理',processing:'处理中',completed:'已完成'}[s]||s },
+        statusText(s) { return {pending:'待处理',processing:'处理中',pending_acceptance:'待验收',accepted:'已验收',completed:'已完成'}[s]||s },
         statusClass(s) { return 'tag-'+(s||'') },
         formatTime(t) { return t ? t.replace('T',' ').substring(0,19) : '' },
         roleText(r) { return {student:'学生',teacher:'师傅',admin:'管理员'}[r]||r },
