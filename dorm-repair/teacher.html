@@ -80,7 +80,7 @@
             <tr v-for="item in list" :style="item.isUrgent ? 'border-left: 3px solid var(--danger); background: var(--danger-soft)' : ''">
                 <td>{{item.orderNo || item.id}} <span class="urgent-badge" v-if="item.isUrgent">⚠ 紧急</span></td>
                 <td>{{item.description}}</td>
-                <td><span class="tag" :class="statusClass(item.status)">{{statusText(item.status)}}</span></td>
+                <td><span class="tag" :class="statusClass(item.status)">{{statusText(item.status)}}</span> <span v-if="item.isOverdue" style="color:var(--danger);font-weight:600;font-size:12px">超时</span></td>
                 <td>{{formatTime(item.submitTime)}}</td>
                 <td>
                     <span v-if="item.remark" class="remark-text" :title="item.remark">{{item.remark}}</span>

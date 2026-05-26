@@ -18,11 +18,12 @@
         .top-bar button{padding:6px 14px;border:none;border-radius:4px;cursor:pointer;font-size:12px;background:#f0f2f5;color:#666}
         .top-bar button:hover{background:#e4e7ed}
         .title{font-size:24px;margin-bottom:20px;color:#333;font-weight:600}
-        .stats{display:grid;grid-template-columns:repeat(4,1fr);gap:16px;margin-bottom:20px}
+        .stats{display:grid;grid-template-columns:repeat(5,1fr);gap:16px;margin-bottom:20px}
         .stat-card{padding:24px;background:white;border-radius:12px;box-shadow:0 2px 10px rgba(0,0,0,0.04);text-align:center}
         .stat-card h3{font-size:14px;color:#999;margin-bottom:10px}
         .stat-card .num{font-size:32px;font-weight:bold;color:#333}
         .stat-card.pending .num{color:#e6a23c}.stat-card.processing .num{color:#409eff}.stat-card.completed .num{color:#67c23a}
+        .stat-card.overdue .num{color:#f56c6c}
         .btn{padding:10px 20px;color:white;border:none;border-radius:6px;cursor:pointer;font-size:14px;transition:opacity 0.2s}
         .btn:hover{opacity:0.85}
         .btn-primary{background:#409eff}.btn-green{background:#67c23a}
@@ -69,6 +70,7 @@
         <div class="stat-card pending"><h3>待处理</h3><div class="num">{{stats.pending || 0}}</div></div>
         <div class="stat-card processing"><h3>处理中</h3><div class="num">{{stats.processing || 0}}</div></div>
         <div class="stat-card completed"><h3>已完成</h3><div class="num">{{stats.completed || 0}}</div></div>
+        <div class="stat-card overdue"><h3>超时工单</h3><div class="num">{{overdueCount}}</div></div>
     </div>
 
     <div class="chart-row">
@@ -124,7 +126,7 @@ const { createApp } = Vue
 createApp({
     data() {
         return {
-            stats:{}, list:[], dorms:[], user:{},
+            stats:{}, list:[], dorms:[], user:{}, overdueCount:0,
             filter:{status:'',dormId:null,startDate:'',endDate:''},
             currentPage:1, totalPages:1, totalItems:0,
             trendChart:null,
@@ -160,8 +162,12 @@ createApp({
             this.totalPages = d.pages || 1
             this.totalItems = d.total || 0
         },
+        async loadOverdue() {
+            const res = await api.get('/order/overdue')
+            this.overdueCount = (res.data.data || []).length
+        },
         async refresh() {
-            await Promise.all([this.loadStats(), this.loadList(1)])
+            await Promise.all([this.loadStats(), this.loadList(1), this.loadOverdue()])
         },
         async searchOrders() {
             const params = {}

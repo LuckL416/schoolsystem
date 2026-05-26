@@ -40,4 +40,7 @@ public class WorkOrder {
     // Dispatch & Bidding (Module 3)
     private Long assignedTeacherId;
     private LocalDateTime assignTime;
+
+    // Overdue (Module 4)
+    private Integer isOverdue;
 }

@@ -4,6 +4,7 @@ import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.school.dormrepair.common.Result;
 import com.school.dormrepair.entity.WorkOrder;
 import com.school.dormrepair.mapper.WorkOrderMapper;
+import com.school.dormrepair.service.NotificationService;
 import com.school.dormrepair.service.WorkOrderService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
@@ -20,6 +21,9 @@ public class WorkOrderController {
 
     @Autowired
     private WorkOrderMapper workOrderMapper;
+
+    @Autowired
+    private NotificationService notificationService;
 
     @PostMapping("/submit")
     public Result<String> submit(
@@ -141,5 +145,27 @@ public class WorkOrderController {
           .orderByAsc(WorkOrder::getUrgentLevel)
           .orderByDesc(WorkOrder::getSubmitTime);
         return Result.success(workOrderMapper.selectList(qw));
+    }
+
+    /** List all overdue orders */
+    @GetMapping("/overdue")
+    public Result<List<WorkOrder>> overdueList() {
+        LambdaQueryWrapper<WorkOrder> qw = new LambdaQueryWrapper<>();
+        qw.eq(WorkOrder::getIsOverdue, 1)
+          .orderByDesc(WorkOrder::getSubmitTime);
+        return Result.success(workOrderMapper.selectList(qw));
+    }
+
+    /** Manually notify assigned teacher about overdue order */
+    @PostMapping("/overdue/notify/{orderId}")
+    public Result<?> overdueNotify(@PathVariable Long orderId) {
+        WorkOrder o = workOrderMapper.selectById(orderId);
+        if (o != null && o.getAssignedTeacherId() != null) {
+            notificationService.send(o.getAssignedTeacherId(), "overdue",
+                "超时工单催促",
+                "工单 " + o.getOrderNo() + " 已超时，请尽快处理",
+                orderId);
+        }
+        return Result.success();
     }
 }
