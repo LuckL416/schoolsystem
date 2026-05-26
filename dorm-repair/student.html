@@ -83,6 +83,16 @@
         .empty-state{text-align:center;padding:40px 20px;color:#999}
         .empty-state .icon{font-size:48px;margin-bottom:12px}
         .empty-state .text{font-size:14px}
+        /* Tip Cards */
+        .tip-card{display:flex;gap:12px;padding:14px;margin-bottom:10px;background:white;border-radius:10px;border-left:4px solid #3b82f6;box-shadow:0 1px 3px rgba(0,0,0,0.05);transition:box-shadow 0.2s}
+        .tip-card:hover{box-shadow:0 2px 8px rgba(0,0,0,0.1)}
+        .tip-icon{font-size:24px;flex-shrink:0;width:32px;text-align:center;line-height:1.2}
+        .tip-body{flex:1;min-width:0}
+        .tip-title{font-size:14px;font-weight:600;color:#1a1a2e;margin-bottom:4px}
+        .tip-desc{font-size:12px;color:#666;line-height:1.5;margin-bottom:6px}
+        .tip-expand{font-size:11px;color:#3b82f6;cursor:pointer;font-weight:500;user-select:none}
+        .tip-expand:hover{text-decoration:underline}
+        .tip-detail{margin-top:8px;padding:10px 12px;background:#f8fafc;border-radius:6px;font-size:12px;color:#444;line-height:1.8}
     </style>
 </head>
 <body>
@@ -179,22 +189,24 @@
 
     </div><!-- /main-col -->
 
-    <!-- 右侧：维修小贴士 -->
+    <!-- 右侧：维修小贴士（直接展示） -->
     <div class="side-col">
-    <div class="card" v-if="tips.length > 0">
-        <h3 style="display:flex;align-items:center;gap:8px">💡 维修小贴士
-            <span style="font-size:12px;color:#999;font-weight:400">常见故障自己动手试试</span>
-        </h3>
-        <div v-for="(t, i) in tips" :key="t.id" style="padding:10px 0;border-bottom:1px solid #f0f0f0;cursor:pointer"
-             :style="{ borderBottom: i === tips.length-1 ? 'none' : '' }"
-             @click="showTip = showTip === t.id ? null : t.id">
-            <div style="display:flex;justify-content:space-between;align-items:center">
-                <span style="font-size:14px;font-weight:500;color:#333">{{ t.title }}</span>
-                <span style="font-size:12px;color:#999;transition:transform 0.2s"
-                      :style="{ transform: showTip === t.id ? 'rotate(180deg)' : '' }">▼</span>
+    <div v-if="tips.length > 0" style="margin-bottom:20px">
+        <div style="font-size:16px;font-weight:700;color:#333;margin-bottom:12px;display:flex;align-items:center;gap:6px">
+            💡 自己动手试试
+        </div>
+        <div style="font-size:12px;color:#999;margin-bottom:12px">小问题自己解决，省时又方便</div>
+        <div v-for="(t, i) in tips" :key="t.id" class="tip-card"
+             :style="{ borderLeftColor: ['#3b82f6','#10b981','#f59e0b','#ef4444','#8b5cf6','#ec4899'][i%6] }">
+            <div class="tip-icon">{{ ['⚡','❄️','🚽','🚰','🔥','🪟'][i%6] }}</div>
+            <div class="tip-body">
+                <div class="tip-title">{{ t.title }}</div>
+                <div class="tip-desc" v-html="truncateText(t.content, 60)"></div>
+                <div class="tip-expand" @click="showTip = showTip === t.id ? null : t.id">
+                    {{ showTip === t.id ? '收起 ▲' : '查看步骤 ▼' }}
+                </div>
+                <div v-if="showTip === t.id" class="tip-detail" v-html="t.content"></div>
             </div>
-            <div v-if="showTip === t.id" style="margin-top:8px;font-size:13px;color:#666;line-height:1.8"
-                 v-html="t.content"></div>
         </div>
     </div>
 
@@ -506,6 +518,12 @@ createApp({
                 const data = res.data.data
                 this.tips = data.records || []
             }).catch(() => {})
+        },
+        truncateText(html, maxLen) {
+            const div = document.createElement('div');
+            div.innerHTML = html;
+            const text = div.textContent || '';
+            return text.length > maxLen ? text.substring(0, maxLen) + '…' : text;
         },
         goBack() { api.goLogin() }
     }
