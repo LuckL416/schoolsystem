@@ -1,18 +1,23 @@
 package com.school.dormrepair.service;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import com.school.dormrepair.common.BusinessException;
 import com.school.dormrepair.common.Result;
 import com.school.dormrepair.entity.WorkOrder;
 import com.school.dormrepair.mapper.WorkOrderMapper;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 @Service
 public class WorkOrderService {
 
-    @Autowired
-    private WorkOrderMapper workOrderMapper;
+    private final WorkOrderMapper workOrderMapper;
+    private final NotificationService notificationService;
+
+    public WorkOrderService(WorkOrderMapper workOrderMapper, NotificationService notificationService) {
+        this.workOrderMapper = workOrderMapper;
+        this.notificationService = notificationService;
+    }
 
     // 学生提交报修
     public Result<String> submit(WorkOrder workOrder) {
@@ -98,13 +103,62 @@ public class WorkOrderService {
         if (order == null || !"processing".equals(order.getStatus())) {
             return Result.error("工单不存在或状态不可完工");
         }
-        order.setStatus("completed");
+        order.setStatus("pending_acceptance");
         order.setCompleteTime(LocalDateTime.now());
         if (remark != null && !remark.isEmpty()) {
             order.setRemark(remark);
         }
         workOrderMapper.updateById(order);
         return Result.success("完工成功");
+    }
+
+    /** Student confirms acceptance — pending_acceptance -> accepted */
+    public void acceptance(Long orderId, Long studentId) {
+        WorkOrder order = workOrderMapper.selectById(orderId);
+        if (order == null) throw new BusinessException("工单不存在");
+        if (!"pending_acceptance".equals(order.getStatus()))
+            throw new BusinessException("当前状态不可验收");
+        if (!order.getStudentId().equals(studentId))
+            throw new BusinessException("只能验收自己的工单");
+
+        WorkOrder update = new WorkOrder();
+        update.setId(orderId);
+        update.setStatus("accepted");
+        update.setAcceptanceTime(LocalDateTime.now());
+        workOrderMapper.updateById(update);
+    }
+
+    /** Student evaluates — 3 dimensions + comment. Bad rating (avg < 3) alerts admin */
+    public void evaluate(Long orderId, Long studentId,
+                         Integer attitude, Integer speed, Integer quality, String comment) {
+        WorkOrder order = workOrderMapper.selectById(orderId);
+        if (order == null) throw new BusinessException("工单不存在");
+        if (!"accepted".equals(order.getStatus()))
+            throw new BusinessException("请先确认验收后再评价");
+        if (!order.getStudentId().equals(studentId))
+            throw new BusinessException("只能评价自己的工单");
+        if (attitude == null || speed == null || quality == null)
+            throw new BusinessException("请完成所有维度评分");
+        if (attitude < 1 || attitude > 5 || speed < 1 || speed > 5 || quality < 1 || quality > 5)
+            throw new BusinessException("评分范围为1-5");
+
+        WorkOrder update = new WorkOrder();
+        update.setId(orderId);
+        update.setEvaluateAttitude(attitude);
+        update.setEvaluateSpeed(speed);
+        update.setEvaluateQuality(quality);
+        update.setEvaluateComment(comment);
+        update.setEvaluateTime(LocalDateTime.now());
+        workOrderMapper.updateById(update);
+
+        // Bad rating check: average < 3 → alert admin (user id 1 = super admin)
+        double avg = (attitude + speed + quality) / 3.0;
+        if (avg < 3.0) {
+            notificationService.send(1L, "bad_rating",
+                "差评预警",
+                "工单 " + order.getOrderNo() + " 收到差评（均分 " + String.format("%.1f", avg) + "），请关注处理",
+                orderId);
+        }
     }
 
     // 学生评价

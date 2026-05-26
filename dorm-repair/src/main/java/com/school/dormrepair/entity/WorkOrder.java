@@ -24,4 +24,12 @@ public class WorkOrder {
     private LocalDateTime completeTime;
     private Integer evaluateStar;
     private String remark;
+
+    // Acceptance & Rating (Module 1)
+    private LocalDateTime acceptanceTime;
+    private Integer evaluateAttitude;
+    private Integer evaluateSpeed;
+    private Integer evaluateQuality;
+    private String evaluateComment;
+    private LocalDateTime evaluateTime;
 }
