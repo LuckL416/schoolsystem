@@ -9,103 +9,124 @@
         *{margin:0;padding:0;box-sizing:border-box}
         body{
             margin:0;padding:0;
-            background:linear-gradient(135deg, #e8f4fc 0%, #f0f2f5 50%, #e8fce8 100%);
+            background:linear-gradient(160deg, #e8f0fe 0%, #f0f4f8 40%, #eaf5eb 100%);
             display:flex;justify-content:center;align-items:center;
-            height:100vh;font-family:"Microsoft YaHei","PingFang SC",sans-serif;
+            min-height:100vh;font-family:"Microsoft YaHei","PingFang SC","Inter",sans-serif;
+            padding:20px;
         }
+        .login-wrapper{width:420px}
+        .login-header{text-align:center;margin-bottom:24px}
+        .login-header .logo{font-size:48px;margin-bottom:8px;display:block}
+        .login-header h1{font-size:26px;color:#1a1a2e;font-weight:700;letter-spacing:-0.3px}
+        .login-header .slogan{font-size:13px;color:#8e95a5;margin-top:4px}
         .login-box{
-            width:400px;background:white;padding:40px 36px 32px;
-            border-radius:16px;box-shadow:0 8px 32px rgba(0,0,0,0.1);
+            width:100%;background:white;padding:36px 32px 28px;
+            border-radius:16px;box-shadow:0 4px 24px rgba(0,0,0,0.07),0 1px 4px rgba(0,0,0,0.04);
         }
-        .title{text-align:center;font-size:22px;margin-bottom:24px;color:#333;font-weight:600}
-        /* 角色切换标签 */
         .role-tabs{
-            display:flex;gap:0;margin-bottom:28px;
-            background:#f5f7fa;border-radius:10px;padding:4px;
+            display:flex;gap:6px;margin-bottom:28px;
+            background:#f1f5f9;border-radius:12px;padding:4px;
         }
         .role-tab{
-            flex:1;text-align:center;padding:10px 0;border-radius:8px;
-            cursor:pointer;font-size:14px;color:#666;
-            transition:all 0.25s;font-weight:500;
-            user-select:none;
+            flex:1;text-align:center;padding:12px 0 10px;border-radius:10px;
+            cursor:pointer;font-size:13px;color:#64748b;
+            transition:all 0.2s ease;font-weight:500;
+            user-select:none;position:relative;
         }
-        .role-tab.active.student{background:#409eff;color:#fff;box-shadow:0 2px 8px rgba(64,158,255,0.35)}
-        .role-tab.active.teacher{background:#e6a23c;color:#fff;box-shadow:0 2px 8px rgba(230,162,60,0.35)}
-        .role-tab.active.admin{background:#67c23a;color:#fff;box-shadow:0 2px 8px rgba(103,194,58,0.35)}
-        .role-tab:hover:not(.active){background:#e8eaed}
-
-        /* 角色图标 */
-        .role-icon{font-size:28px;display:block;margin-bottom:2px}
-        .role-label{font-size:13px}
-
-        /* 表单 */
-        .form-group{margin-bottom:18px}
+        .role-tab.active{color:#fff;font-weight:600}
+        .role-tab.active.student-tab{background:#3b82f6;box-shadow:0 2px 8px rgba(59,130,246,0.3)}
+        .role-tab.active.teacher-tab{background:#f59e0b;box-shadow:0 2px 8px rgba(245,158,11,0.3)}
+        .role-tab.active.admin-tab{background:#10b981;box-shadow:0 2px 8px rgba(16,185,129,0.3)}
+        .role-tab:hover:not(.active){background:#e2e8f0;color:#475569}
+        .role-icon{font-size:24px;display:block;margin-bottom:2px;line-height:1.2}
+        .role-label{font-size:12px}
+        .form-group{margin-bottom:16px}
+        .input-wrap{position:relative}
+        .input-wrap .input-icon{position:absolute;left:14px;top:50%;transform:translateY(-50%);font-size:16px;color:#94a3b8;pointer-events:none}
         .input{
-            width:100%;height:46px;padding:0 16px;
-            border:1.5px solid #a1a7b4;border-radius:8px;
-            outline:none;font-size:14px;transition:border-color 0.25s;
-            background:#fafbfc;
+            width:100%;height:48px;padding:0 16px 0 40px;
+            border:1.5px solid #e2e8f0;border-radius:10px;
+            outline:none;font-size:14px;transition:all 0.2s;
+            background:#f8fafc;color:#1a1a2e;
         }
-        .input:focus{border-color:#409eff;background:#fff}
+        .input:focus{border-color:#3b82f6;background:#fff;box-shadow:0 0 0 3px rgba(59,130,246,0.08)}
+        .input::placeholder{color:#b0b8c4}
         .btn{
-            width:100%;height:46px;border:none;border-radius:8px;
-            font-size:16px;cursor:pointer;color:#fff;font-weight:500;
-            transition:all 0.25s;letter-spacing:2px;
+            width:100%;height:48px;border:none;border-radius:10px;
+            font-size:15px;cursor:pointer;color:#fff;font-weight:600;
+            transition:all 0.2s;letter-spacing:1px;margin-top:4px;
         }
-        .btn.student{background:#409eff}
-        .btn.teacher{background:#e6a23c}
-        .btn.admin{background:#67c23a}
-        .btn:hover{opacity:0.88;transform:translateY(-1px)}
-        .btn:active{transform:translateY(0)}
-        .tip{text-align:center;margin-top:16px;color:#999;font-size:12px}
-
-        .error-msg{color:#f56c6c;font-size:13px;text-align:center;margin-top:8px;min-height:20px}
-        .category-pill { display:inline-block;font-size:10px;font-weight:600;padding:1px 6px;border-radius:10px; }
-        .category-notice { background:#fef3c7;color:#d97706; }
-        .category-tip { background:#dbeafe;color:#2563eb; }
-        .category-general { background:#f1f5f9;color:#475569; }
+        .btn.student-btn{background:#3b82f6}
+        .btn.teacher-btn{background:#f59e0b}
+        .btn.admin-btn{background:#10b981}
+        .btn:hover{filter:brightness(1.08);transform:translateY(-1px);box-shadow:0 4px 12px rgba(0,0,0,0.15)}
+        .btn:active{transform:translateY(0);filter:brightness(0.95)}
+        .tip{text-align:center;margin-top:18px;color:#94a3b8;font-size:12px}
+        .tip a{color:#3b82f6;text-decoration:none;font-weight:500}
+        .tip a:hover{text-decoration:underline}
+        .error-msg{background:#fef2f2;color:#dc2626;font-size:13px;text-align:center;padding:8px 12px;border-radius:8px;margin-top:10px;min-height:20px}
+        .category-pill{display:inline-block;font-size:10px;font-weight:600;padding:1px 6px;border-radius:10px}
+        .category-notice{background:#fef3c7;color:#d97706}
+        .category-tip{background:#dbeafe;color:#2563eb}
+        .category-general{background:#f1f5f9;color:#475569}
+        .login-footer{text-align:center;margin-top:20px;color:#94a3b8;font-size:11px}
     </style>
 </head>
 <body>
-<div id="app" class="login-box">
-    <div class="title">宿舍报修系统</div>
-
-    <!-- 角色切换 -->
-    <div class="role-tabs">
-        <div class="role-tab student" :class="{active:role==='student'}" @click="role='student'">
-            <span class="role-icon">🎓</span>
-            <span class="role-label">学生</span>
-        </div>
-        <div class="role-tab teacher" :class="{active:role==='teacher'}" @click="role='teacher'">
-            <span class="role-icon">🔧</span>
-            <span class="role-label">师傅</span>
-        </div>
-        <div class="role-tab admin" :class="{active:role==='admin'}" @click="role='admin'">
-            <span class="role-icon">🏢</span>
-            <span class="role-label">管理员</span>
-        </div>
+<div id="app" class="login-wrapper">
+    <div class="login-header">
+        <span class="logo">🏠</span>
+        <h1>宿舍报修系统</h1>
+        <div class="slogan">便捷报修 · 快速响应 · 全程追踪</div>
     </div>
 
-    <!-- 登录表单 -->
-    <div class="form-group">
-        <input v-model="username" class="input" placeholder="用户名"
-               @keyup.enter="login" />
+    <div class="login-box">
+        <!-- 角色切换 -->
+        <div class="role-tabs">
+            <div class="role-tab student-tab" :class="{active:role==='student'}" @click="role='student'">
+                <span class="role-icon">🎓</span>
+                <span class="role-label">我是学生</span>
+            </div>
+            <div class="role-tab teacher-tab" :class="{active:role==='teacher'}" @click="role='teacher'">
+                <span class="role-icon">🔧</span>
+                <span class="role-label">我是师傅</span>
+            </div>
+            <div class="role-tab admin-tab" :class="{active:role==='admin'}" @click="role='admin'">
+                <span class="role-icon">⚙</span>
+                <span class="role-label">管理员</span>
+            </div>
+        </div>
+
+        <!-- 登录表单 -->
+        <div class="form-group">
+            <div class="input-wrap">
+                <span class="input-icon">👤</span>
+                <input v-model="username" class="input" placeholder="请输入用户名" @keyup.enter="login" />
+            </div>
+        </div>
+        <div class="form-group">
+            <div class="input-wrap">
+                <span class="input-icon">🔒</span>
+                <input v-model="password" class="input" type="password" placeholder="请输入密码" @keyup.enter="login" />
+            </div>
+        </div>
+        <button class="btn" :class="role+'-btn'" @click="login">登 录</button>
+        <div class="error-msg" v-if="errorMsg">{{errorMsg}}</div>
+        <div class="tip">
+            <span>还没有账号？</span><a href="register.html">学生注册</a>
+        </div>
     </div>
-    <div class="form-group">
-        <input v-model="password" class="input" type="password" placeholder="密码"
-               @keyup.enter="login" />
-    </div>
-    <button class="btn" :class="role" @click="login">登 录</button>
-    <div class="error-msg">{{errorMsg}}</div>
-    <div class="tip">请选择您的身份后登录 | <a href="register.html" style="color:#409eff;text-decoration:none">学生注册</a></div>
-    <div class="latest-announcements" style="margin-top:24px;padding:16px;background:#f8fafc;border-radius:10px;max-width:400px;margin-left:auto;margin-right:auto">
-      <div style="font-weight:600;margin-bottom:8px;color:#475569;font-size:14px">&#x1F4E2; 最新公告</div>
-      <div v-if="announcements.length === 0" style="color:#94a3b8;font-size:12px">暂无公告</div>
-      <div v-for="a in announcements" :key="a.id" style="padding:6px 0;border-bottom:1px solid #e2e8f0;font-size:13px">
+
+    <div class="latest-announcements" style="margin-top:20px;padding:16px 20px;background:white;border-radius:12px;box-shadow:0 1px 4px rgba(0,0,0,0.05)">
+      <div style="font-weight:600;margin-bottom:10px;color:#475569;font-size:14px">📢 最新公告</div>
+      <div v-if="announcements.length === 0" style="color:#94a3b8;font-size:12px;text-align:center;padding:8px">暂无公告</div>
+      <div v-for="a in announcements" :key="a.id" style="padding:7px 0;border-bottom:1px solid #f1f5f9;font-size:13px;cursor:pointer" :style="{borderBottom:'none'}">
         <span :class="'category-pill category-' + a.category" style="margin-right:6px">{{ a.category === 'notice' ? '通知' : a.category === 'tip' ? '贴士' : '公告' }}</span>
-        {{ a.title }}
+        <span style="color:#334155">{{ a.title }}</span>
       </div>
     </div>
+
+    <div class="login-footer">校园宿舍报修管理系统 · 让维修更高效</div>
 </div>
 
 <script src="api.js"></script>
