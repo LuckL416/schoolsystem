@@ -239,8 +239,14 @@ createApp({
             if (this.trendChart) this.trendChart.destroy()
             this.trendChart = new Chart(ctx, {
                 type:'bar',
-                data:{labels:labels.map(l=>l.substring(5)),datasets:[{label:'工单数',data:values,backgroundColor:'#409eff',borderRadius:4}]},
-                options:{responsive:true,plugins:{legend:{display:false}},scales:{y:{beginAtZero:true,ticks:{stepSize:1}}}}
+                data:{
+                    labels:labels.map(l=>l.substring(5)),
+                    datasets:[
+                        {type:'bar',label:'每日报修',data:values,backgroundColor:'rgba(64,158,255,0.35)',borderRadius:4,order:2},
+                        {type:'line',label:'趋势',data:values,borderColor:'#f59e0b',backgroundColor:'rgba(245,158,11,0.08)',borderWidth:2.5,pointRadius:4,pointBackgroundColor:'#f59e0b',tension:0.3,fill:true,order:1}
+                    ]
+                },
+                options:{responsive:true,interaction:{intersect:false,mode:'index'},plugins:{legend:{labels:{usePointStyle:true,padding:16}}},scales:{y:{beginAtZero:true,ticks:{stepSize:1}}}}
             })
         },
         exportExcel() {
