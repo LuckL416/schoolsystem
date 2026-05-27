@@ -249,13 +249,22 @@ createApp({
                 options:{responsive:true,interaction:{intersect:false,mode:'index'},plugins:{legend:{labels:{usePointStyle:true,padding:16}}},scales:{y:{beginAtZero:true,ticks:{stepSize:1}}}}
             })
         },
-        exportExcel() {
+        async exportExcel() {
             const params = new URLSearchParams()
             if (this.filter.status) params.set('status',this.filter.status)
             if (this.filter.startDate) params.set('startDate',this.filter.startDate)
             if (this.filter.endDate) params.set('endDate',this.filter.endDate)
             const qs = params.toString()
-            window.open(API_BASE + '/stats/export' + (qs?'?'+qs:''))
+            try {
+                const res = await axios.get(API_BASE + '/stats/export' + (qs?'?'+qs:''), {
+                    headers: { Authorization: 'Bearer ' + api.getToken() },
+                    responseType: 'blob'
+                })
+                const url = URL.createObjectURL(res.data)
+                const a = document.createElement('a')
+                a.href = url; a.download = '工单导出.xlsx'; a.click()
+                URL.revokeObjectURL(url)
+            } catch(e) { alert('导出失败') }
         },
         async changePassword() {
             if (!this.pwdForm.oldPassword || !this.pwdForm.newPassword) { alert('请填写完整'); return }

@@ -20,6 +20,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 import jakarta.servlet.http.HttpServletResponse;
 import java.util.*;
+import java.util.Map;
 import java.util.stream.Collectors;
 
 // 鉴权由 JwtInterceptor 统一处理
@@ -217,7 +218,21 @@ public class StatsController {
             list.removeIf(o -> o.getSubmitTime() == null ||
                     o.getSubmitTime().isAfter(java.time.LocalDateTime.parse(endDate + "T23:59:59")));
         }
-        List<WorkOrderExcelVO> voList = list.stream().map(WorkOrderExcelVO::from).collect(Collectors.toList());
+        // Preload lookup maps
+        List<Dorm> dorms = dormMapper.selectList(null);
+        Map<Long, Dorm> dormMap = dorms.stream().collect(Collectors.toMap(Dorm::getId, d -> d));
+        List<FaultType> ftypes = faultTypeMapper.selectList(null);
+        Map<Long, FaultType> ftMap = ftypes.stream().collect(Collectors.toMap(FaultType::getId, f -> f));
+        List<User> users = userMapper.selectList(null);
+        Map<Long, User> userMap = users.stream().collect(Collectors.toMap(User::getId, u -> u));
+
+        List<WorkOrderExcelVO> voList = list.stream()
+            .map(o -> WorkOrderExcelVO.from(o,
+                dormMap.get(o.getDormId()),
+                ftMap.get(o.getFaultTypeId()),
+                userMap.get(o.getStudentId()),
+                userMap.get(o.getTeacherId())))
+            .collect(Collectors.toList());
         EasyExcel.write(response.getOutputStream(), WorkOrderExcelVO.class).sheet("工单列表").doWrite(voList);
     }
 }
