@@ -25,9 +25,10 @@ public class InventoryController {
     @GetMapping("/list")
     public Result<Page<InventoryItem>> list(
             @RequestParam(defaultValue = "1") int page,
-            @RequestParam(defaultValue = "20") int size
+            @RequestParam(defaultValue = "20") int size,
+            @RequestParam(required = false) String category
     ) {
-        return Result.success(inventoryService.listItems(page, size));
+        return Result.success(inventoryService.listItems(page, size, category));
     }
 
     /**

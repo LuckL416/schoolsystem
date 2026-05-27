@@ -239,6 +239,7 @@ createApp({
         async loadItems(page) {
             this.currentPage = page
             const params = { page, size: 20 }
+            if (this.filterCat) params.category = this.filterCat
             try {
                 const res = await api.get('/inventory/list', params)
                 const d = res.data.data

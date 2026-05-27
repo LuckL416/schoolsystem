@@ -30,8 +30,13 @@ public class InventoryService {
     /**
      * 分页查询耗材列表
      */
-    public Page<InventoryItem> listItems(int page, int size) {
-        return inventoryItemMapper.selectPage(new Page<>(page, size), null);
+    public Page<InventoryItem> listItems(int page, int size, String category) {
+        LambdaQueryWrapper<InventoryItem> qw = new LambdaQueryWrapper<>();
+        if (category != null && !category.isEmpty()) {
+            qw.eq(InventoryItem::getCategory, category);
+        }
+        qw.orderByAsc(InventoryItem::getCategory).orderByAsc(InventoryItem::getName);
+        return inventoryItemMapper.selectPage(new Page<>(page, size), qw);
     }
 
     /**
