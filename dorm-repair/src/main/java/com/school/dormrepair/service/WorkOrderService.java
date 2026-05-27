@@ -48,9 +48,12 @@ public class WorkOrderService {
         workOrder.setOrderNo(datePrefix + String.format("%03d", seq));
         workOrderMapper.insert(workOrder);
 
-        // Module 2: Check fault type urgency
+        // Module 2: Check fault type urgency + keyword detection
         FaultType ft = faultTypeMapper.selectById(workOrder.getFaultTypeId());
-        if (ft != null && ft.getUrgentLevel() != null && ft.getUrgentLevel() <= 2) {
+        boolean urgentByType = ft != null && ft.getUrgentLevel() != null && ft.getUrgentLevel() <= 2;
+        boolean urgentByKeyword = hasUrgentKeyword(workOrder.getDescription());
+
+        if (urgentByType || urgentByKeyword) {
             workOrder.setIsUrgent(1);
             workOrder.setUrgentLevel(ft.getUrgentLevel());
             workOrderMapper.updateById(workOrder);
@@ -217,11 +220,22 @@ public class WorkOrderService {
 
     // ========== Module 3: Dispatch & Bidding ==========
 
-    /** Auto-assign urgent order to a random teacher */
+    /** Auto-assign urgent order to a random teacher matching work type */
     private void autoAssign(WorkOrder order) {
+        FaultType ft = faultTypeMapper.selectById(order.getFaultTypeId());
+        String workType = ft != null ? ft.getWorkType() : null;
+
         LambdaQueryWrapper<User> qw = new LambdaQueryWrapper<>();
         qw.eq(User::getRole, "teacher");
+        if (workType != null && !workType.isEmpty()) {
+            qw.eq(User::getWorkType, workType);
+        }
         List<User> teachers = userMapper.selectList(qw);
+        if (teachers.isEmpty()) {
+            // Fallback: any teacher if no matching work type
+            teachers = userMapper.selectList(
+                new LambdaQueryWrapper<User>().eq(User::getRole, "teacher"));
+        }
         if (teachers.isEmpty()) return;
 
         User assigned = teachers.get(new Random().nextInt(teachers.size()));
@@ -266,6 +280,16 @@ public class WorkOrderService {
             "工单分配",
             "管理员已将工单 " + order.getOrderNo() + " 分配给您",
             orderId);
+    }
+
+    /** Check description for emergency keywords */
+    private boolean hasUrgentKeyword(String desc) {
+        if (desc == null || desc.isEmpty()) return false;
+        String[] keywords = {"爆", "火花", "冒烟", "起火", "漏电", "触电", "淹", "紧急", "着火", "爆炸", "电击", "漏气"};
+        for (String kw : keywords) {
+            if (desc.contains(kw)) return true;
+        }
+        return false;
     }
 
     /** Get unclaimed orders pool (non-urgent, unassigned pending) */

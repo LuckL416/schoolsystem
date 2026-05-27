@@ -28,6 +28,22 @@ public class OverdueCheckTask {
 
     @Scheduled(fixedRate = 60000)
     public void checkOverdue() {
+        // Auto-accept pending_acceptance orders stuck for >72 hours
+        List<WorkOrder> unaccepted = workOrderMapper.selectList(
+            new LambdaQueryWrapper<WorkOrder>()
+                .eq(WorkOrder::getStatus, "pending_acceptance"));
+        for (WorkOrder o : unaccepted) {
+            if (o.getCompleteTime() != null
+                && o.getCompleteTime().plusHours(72).isBefore(LocalDateTime.now())) {
+                WorkOrder update = new WorkOrder();
+                update.setId(o.getId());
+                update.setStatus("accepted");
+                update.setAcceptanceTime(LocalDateTime.now());
+                workOrderMapper.updateById(update);
+            }
+        }
+
+        // Existing overdue check
         List<WorkOrder> orders = workOrderMapper.selectList(
             new LambdaQueryWrapper<WorkOrder>()
                 .in(WorkOrder::getStatus, "pending", "processing")
