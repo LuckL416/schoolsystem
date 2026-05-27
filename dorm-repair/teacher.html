@@ -117,7 +117,10 @@
             <tr v-for="item in list" :style="item.isUrgent ? 'border-left: 3px solid var(--danger); background: var(--danger-soft)' : ''">
                 <td>{{item.orderNo || item.id}} <span class="urgent-badge" v-if="item.isUrgent">⚠ 紧急</span></td>
                 <td>{{item.description}}</td>
-                <td><span class="tag" :class="statusClass(item.status)">{{statusText(item.status)}}</span> <span v-if="item.isOverdue" style="color:var(--danger);font-weight:600;font-size:12px">超时</span></td>
+                <td>
+                    <span v-if="item.isOverdue" style="display:inline-block;background:#fee2e2;color:#dc2626;padding:1px 8px;border-radius:10px;font-size:11px;font-weight:700;margin-right:4px">超时</span>
+                    <span class="tag" :class="statusClass(item.status)">{{statusText(item.status)}}</span>
+                </td>
                 <td>{{formatTime(item.submitTime)}}</td>
                 <td>
                     <span v-if="item.remark" class="remark-text" :title="item.remark">{{item.remark}}</span>
@@ -265,7 +268,7 @@ createApp({
             this.showPwdModal = false
             this.pwdForm = { oldPassword:'', newPassword:'' }
         },
-        statusText(s) { return {pending:'待处理',processing:'处理中',completed:'已完成'}[s]||s },
+        statusText(s) { return {pending:'待处理',processing:'处理中',pending_acceptance:'待验收',accepted:'已验收',completed:'已完成'}[s]||s },
         statusClass(s) { return 'tag-'+(s||'') },
         formatTime(t) { return t ? t.replace('T',' ').substring(0,19) : '' },
         roleText(r) { return {student:'学生',teacher:'师傅',admin:'管理员'}[r]||r },

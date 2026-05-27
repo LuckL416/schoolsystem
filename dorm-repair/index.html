@@ -265,7 +265,7 @@ createApp({
             this.showPwdModal = false
             this.pwdForm = { oldPassword:'', newPassword:'' }
         },
-        statusText(s){return {pending:'待处理',processing:'处理中',completed:'已完成'}[s]||s},
+        statusText(s){return {pending:'待处理',processing:'处理中',pending_acceptance:'待验收',accepted:'已验收',completed:'已完成'}[s]||s},
         statusClass(s){return 'tag-'+(s||'')},
         formatTime(t){return t?t.replace('T',' ').substring(0,19):''},
         roleText(r){return {student:'学生',teacher:'师傅',admin:'管理员'}[r]||r},

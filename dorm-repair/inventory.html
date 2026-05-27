@@ -271,7 +271,7 @@ createApp({
                 this.showItemModal = false
                 this.loadItems(this.currentPage)
             } catch (e) {
-                alert('保存失败: ' + (e.response?.data?.message || e.message))
+                alert('保存失败，请重试')
             }
         },
         openStockInModal(item) {
@@ -289,7 +289,7 @@ createApp({
                 this.showInModal = false
                 this.loadItems(this.currentPage)
             } catch (e) {
-                alert('入库失败: ' + (e.response?.data?.message || e.message))
+                alert('入库失败，请重试')
             }
         },
         openStockOutModal(item) {
@@ -310,7 +310,7 @@ createApp({
                 this.showOutModal = false
                 this.loadItems(this.currentPage)
             } catch (e) {
-                alert('出库失败: ' + (e.response?.data?.message || e.message))
+                alert('出库失败，请重试')
             }
         },
         openRecordsModal(item) {

@@ -185,7 +185,7 @@ createApp({
         this.showEdit = false;
         this.loadList();
       }).catch(err => {
-        alert('操作失败：' + (err.response?.data?.message || '未知错误'));
+        alert('操作失败，请重试');
       });
     },
     confirmDelete(a) {
@@ -193,7 +193,7 @@ createApp({
       api.announcement.del(a.id).then(() => {
         this.loadList();
       }).catch(err => {
-        alert('删除失败：' + (err.response?.data?.message || '未知错误'));
+        alert('删除失败，请重试');
       });
     },
     truncate(html, len) {

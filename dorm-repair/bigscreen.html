@@ -112,7 +112,7 @@
           <div v-for="o in recentOrders" :key="o.id" class="scroll-item">
             <span>{{ o.orderNo }}</span>
             <span style="flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">{{ o.description }}</span>
-            <span style="white-space:nowrap">{{ o.status }}</span>
+            <span style="white-space:nowrap">{{ statusText(o.status) }}</span>
             <span style="color:#94a3b8;white-space:nowrap">{{ o.submitTime?.substring(5,16) }}</span>
           </div>
         </div>
@@ -197,6 +197,7 @@ createApp({
         }
       });
     },
+    statusText(s) { return {pending:'待处理',processing:'处理中',pending_acceptance:'待验收',accepted:'已验收',completed:'已完成'}[s]||s },
     heatColor(count) {
       if (!count || count === 0) return '#334155';
       if (count <= 2) return '#1e40af';
