@@ -58,11 +58,30 @@
     <div class="main-area">
       <div class="panel">
         <div class="panel-title">楼栋报修热力图</div>
-        <div class="panel-body">
-          <div class="heatmap">
-            <div v-for="h in heatmapData" :key="h.label" class="hm-cell"
-                 :style="{ background: heatColor(h.count) }"
-                 :title="h.label + ': ' + h.count + '单'">{{ h.label }}</div>
+        <div class="panel-body" style="overflow-y:auto">
+          <div v-for="b in buildingHeatmap" :key="b.name" style="margin-bottom:10px">
+            <div style="display:flex;align-items:center;gap:8px;margin-bottom:4px">
+              <span style="font-weight:700;font-size:14px;color:#e2e8f0">{{ b.name }}</span>
+              <span style="font-size:11px;color:#94a3b8">{{ b.total }}单</span>
+              <div style="flex:1;height:3px;border-radius:2px;background:#334155">
+                <div :style="{width:(b.total/maxBuildingCount*100)+'%',height:'100%',borderRadius:'2px',background:b.total>8?'#f87171':b.total>5?'#fbbf24':b.total>2?'#60a5fa':'#4ade80'}"></div>
+              </div>
+            </div>
+            <div style="display:flex;gap:3px;flex-wrap:wrap">
+              <div v-for="r in b.rooms" :key="r.label" class="hm-cell"
+                   :style="{background:heatColor(r.count),flex:'0 0 auto',width:'32px',height:'32px',fontSize:'9px'}"
+                   :title="r.label+': '+r.count+'单'">{{ r.room }}</div>
+            </div>
+          </div>
+          <!-- Legend -->
+          <div style="display:flex;align-items:center;gap:6px;margin-top:10px;font-size:10px;color:#94a3b8">
+            <span>少</span>
+            <span style="width:12px;height:12px;border-radius:2px;background:#334155"></span>
+            <span style="width:12px;height:12px;border-radius:2px;background:#1e40af"></span>
+            <span style="width:12px;height:12px;border-radius:2px;background:#3b82f6"></span>
+            <span style="width:12px;height:12px;border-radius:2px;background:#60a5fa"></span>
+            <span style="width:12px;height:12px;border-radius:2px;background:#93c5fd"></span>
+            <span>多</span>
           </div>
         </div>
       </div>
@@ -108,7 +127,7 @@ createApp({
     return {
       now: '', overdueCount: 0, urgentCount: 0,
       stats: { total: 0, completionRate: '0.0', processing: 0, avgRating: '0.0' },
-      heatmapData: [], overdueList: [], recentOrders: [], trendChart: null, pieChart: null
+      heatmapData: [], buildingHeatmap: [], maxBuildingCount: 1, overdueList: [], recentOrders: [], trendChart: null, pieChart: null
     };
   },
   mounted() {
@@ -130,6 +149,7 @@ createApp({
         ]);
         this.stats = dash.data.data;
         this.heatmapData = heat.data.data || [];
+        this.buildBuildingHeatmap();
         this.overdueList = over.data.data || [];
         this.overdueCount = this.overdueList.length;
         this.recentOrders = recent.data.data || [];
@@ -137,6 +157,17 @@ createApp({
         this.drawPie(byType.data.data || {});
         this.drawTrend();
       } catch(e) { console.error(e); }
+    },
+    buildBuildingHeatmap() {
+      const buildings = {};
+      for (const h of this.heatmapData) {
+        const bld = h.building || h.label?.split('-')[0] || '未知';
+        if (!buildings[bld]) buildings[bld] = { name: bld, total: 0, rooms: [] };
+        buildings[bld].total += h.count || 0;
+        buildings[bld].rooms.push({ label: h.label, room: h.room || h.label?.split('-')[1] || '', count: h.count || 0 });
+      }
+      this.buildingHeatmap = Object.values(buildings);
+      this.maxBuildingCount = Math.max(1, ...this.buildingHeatmap.map(b => b.total));
     },
     drawPie(data) {
       const ctx = document.getElementById('pieChart');
